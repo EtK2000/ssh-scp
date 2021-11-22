@@ -12,6 +12,25 @@ public abstract class DynamicIP {
 		jr.beginObject();
 		{
 			switch (type) {
+				case "aws": {
+					String id = null;
+
+					while (jr.hasNext()) {
+						switch (jr.nextName()) {
+							case "id":
+								id = jr.nextString();
+								break;
+							default:
+								jr.skipValue();
+								break;
+						}
+					}
+					if (id == null)
+						throw new IOException("missing field(s) for DynamicIP of type 'aws'");
+					
+					res = new AWSLookupIP(id);
+					break;
+				}
 				case "google": {
 					String id = null, projectID = null;
 
