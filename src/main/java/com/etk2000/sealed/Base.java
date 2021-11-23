@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
@@ -43,6 +44,15 @@ public class Base {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
+		}
+
+		// if this process was summoned as a progress indicator, function as one
+		for (String arg : args) {
+			if (arg.equals("\0progress")) {
+				// FIXME: implement
+				new JFrame("FIXME: implement").setVisible(true);
+				return;
+			}
 		}
 
 		if (!loadConfig())

@@ -2,7 +2,10 @@ package com.etk2000.sealed.platform;
 
 import java.io.File;
 
+import javax.swing.JFrame;
+
 import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 public abstract class Platform {
@@ -19,14 +22,17 @@ public abstract class Platform {
 	}
 	
 	public static File dir() {
+		instance.dir.mkdirs();
 		return instance.dir;
 	}
 	
 	public static File dirKeys() {
+		instance.dirKeys.mkdirs();
 		return instance.dirKeys;
 	}
 	
 	public static File dirTmp() {
+		instance.dirTmp.mkdirs();
 		return instance.dirTmp;
 	}
 
@@ -52,6 +58,10 @@ public abstract class Platform {
 	public static void setupKeyPerms(String path) {
 		instance.setupKeyPermsImpl(path);
 	}
+
+	public static LongBiConsumer updateProgress(JFrame frame) {
+		return instance.updateProgressImpl(frame);
+	}
 	
 	protected final File dir, dirKeys, dirTmp;
 	protected String sshKey, sshPass;
@@ -75,4 +85,5 @@ public abstract class Platform {
 	protected abstract void runSSHImpl(AuthKey key, String remote);
 	protected abstract void runSSHImpl(String pass, String remote);
 	protected abstract void setupKeyPermsImpl(String path);
+	protected abstract LongBiConsumer updateProgressImpl(JFrame frame);
 }

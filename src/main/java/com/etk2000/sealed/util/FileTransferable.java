@@ -16,8 +16,6 @@ public class FileTransferable implements Transferable {
 		File res = new File(Platform.dirTmp(), filename);
 		if (res.exists())
 			Util.delete(res);
-		else
-			res.getParentFile().mkdirs();
 		return res;
 	}
 

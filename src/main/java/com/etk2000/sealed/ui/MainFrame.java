@@ -42,7 +42,7 @@ public class MainFrame extends JFrame {
 		owner.setEnabled(false);// disable clicking until new window opens
 		if (ssh) {
 			new Thread(() -> {
-				SwingUtilities.invokeLater(() -> owner.setEnabled(true));// restore clicking, FIXME: wait for session to open?
+				SwingUtilities.invokeLater(() -> owner.setEnabled(true));// restore clicking, FIXME: wait for session to open
 				if (srv.pass != null)
 					Platform.runSSH(srv.pass, srv.user + '@' + srv.address());
 				else

@@ -34,7 +34,6 @@ class KeySupplierGithub extends KeySupplier {
 
 		// extract the zip into a new empty directory
 		Util.delete(Platform.dirKeys());
-		Platform.dirKeys().mkdirs();
 		try (ZipFile unzip = new ZipFile(zip)) {
 			for (Enumeration<? extends ZipEntry> entries = unzip.entries(); entries.hasMoreElements();) {
 				ZipEntry entry = entries.nextElement();

@@ -1,8 +1,13 @@
 package com.etk2000.sealed.platform;
 
+import java.awt.Taskbar;
+import java.awt.Taskbar.State;
 import java.io.File;
 
+import javax.swing.JFrame;
+
 import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformWindows extends Platform {
@@ -69,7 +74,7 @@ class PlatformWindows extends Platform {
 
 		return true;
 	}
-	
+
 	// attempt to run in Windows Terminal, but fallback to cmd
 	@Override
 	protected void runSSHImpl(AuthKey key, String remote) {
@@ -90,6 +95,19 @@ class PlatformWindows extends Platform {
 		Util.runForResult("icacls \"" + path + "\" /c /t /Inheritance:d");
 		Util.runForResult("icacls \"" + path + "\" /c /t /Grant " + System.getProperty("user.name") + ":F");
 		Util.runForResult("icacls \"" + path + "\" /c /t /Remove:g \"Authenticated Users\" BUILTIN\\Administrators BUILTIN Everyone System Users");
+	}
 
+	@Override
+	protected LongBiConsumer updateProgressImpl(JFrame frame) {
+		// setup upload/download progress bar
+		Taskbar taskbar = Taskbar.getTaskbar();
+		return (current, full) -> {
+			if (current == full)
+				taskbar.setWindowProgressState(frame, full == -1 ? State.OFF : State.INDETERMINATE);
+			else {
+				taskbar.setWindowProgressState(frame, State.NORMAL);
+				taskbar.setWindowProgressValue(frame, (int) ((double) current / full * 100));
+			}
+		};
 	}
 }
