@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
@@ -13,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.platform.Platform;
 import com.etk2000.sealed.ui.MainFrame;
+import com.etk2000.sealed.ui.ProgressFrame;
 
 public class Base {
 	private static boolean loadConfig() throws IOException {
@@ -48,9 +48,8 @@ public class Base {
 
 		// if this process was summoned as a progress indicator, function as one
 		for (String arg : args) {
-			if (arg.equals("\0progress")) {
-				// FIXME: implement
-				new JFrame("FIXME: implement").setVisible(true);
+			if (arg.equals("--progress")) {
+				new ProgressFrame().doUpdate();
 				return;
 			}
 		}

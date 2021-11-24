@@ -1,7 +1,5 @@
 package com.etk2000.sealed.platform;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -12,12 +10,13 @@ import java.nio.file.attribute.PosixFilePermissions;
 import javax.swing.JFrame;
 
 import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.ui.ProgressFrame;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformLinux extends Platform {
 	private Process progress;
-	private long nextTransferId;
+	private int nextTransfererId;
 
 	PlatformLinux() {
 		super(System.getProperty("user.home"));
@@ -66,7 +65,7 @@ class PlatformLinux extends Platform {
 
 	@Override
 	protected synchronized LongBiConsumer updateProgressImpl(JFrame frame) {
-		long transferId = nextTransferId++;
+		int transfererId = nextTransfererId++;
 		
 		// spawn a new thread/process to handle a progress window
 		return (current, full) -> {
@@ -74,7 +73,7 @@ class PlatformLinux extends Platform {
 				if (progress == null) {
 					try {
 						progress = Runtime.getRuntime()
-								.exec("java -jar \"" + new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getPath() + "\" \0progress");
+								.exec("java -jar \"" + new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getPath() + "\" --progress");
 						Runtime.getRuntime().addShutdownHook(new Thread(progress::destroyForcibly));
 					}
 					catch (IOException | URISyntaxException e) {
@@ -82,14 +81,12 @@ class PlatformLinux extends Platform {
 					}
 				}
 
-				if (progress.isAlive()) {
-					// write to process: "${transferId} ${current} ${full}\n"
-					try {
-						progress.getOutputStream().write((transferId + " " + current + " " + full + "\n").getBytes(UTF_8));
-					}
-					catch (IOException e) {
-						e.printStackTrace();
-					}
+				// write the update to our child process, LOW: respawn process if dead?
+				try {
+					ProgressFrame.writeTo(progress, transfererId, current, full);
+				}
+				catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		};

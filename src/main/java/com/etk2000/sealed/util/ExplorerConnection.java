@@ -227,7 +227,7 @@ public class ExplorerConnection extends CommandConnection {
 				return this;
 			}
 		});
-		transfer.upload(file.getAbsolutePath(), cd.charAt(0) == '~' ? home + cd.substring(1) : cd);
+		transfer.upload(file.getAbsolutePath(), cd.charAt(0) == '~' ? home + cd().substring(1) : cd());
 		progressCallback.accept(-1, -1);
 
 		// update directory contents
