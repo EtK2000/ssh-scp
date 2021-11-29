@@ -6,6 +6,7 @@ import java.net.URISyntaxException;
 
 import javax.swing.JFrame;
 
+import com.etk2000.sealed.Base;
 import com.etk2000.sealed.keys.AuthKey;
 import com.etk2000.sealed.ui.ProgressFrame;
 import com.etk2000.sealed.util.LongBiConsumer;
@@ -76,17 +77,27 @@ public abstract class Platform {
 		dirKeys = new File(dir, "keys");
 		dirTmp = new File(dir, "tmp");
 	}
-	
+
 	protected synchronized LongBiConsumer newTransfer(JFrame frame) {
 		int transfererId = nextTransfererId++;
-		
+
 		// spawn a new thread/process to handle a progress window
 		return (current, full) -> {
 			synchronized (this) {
 				if (progress == null) {
 					try {
-						progress = Runtime.getRuntime()
-								.exec("java -jar \"" + new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getPath() + "\" --progress");
+						File thisJar = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI());
+
+						// if running as a jar, just sub-process it
+						if (thisJar.isFile())
+							progress = Runtime.getRuntime().exec("java -jar \"" + thisJar.getPath() + "\" --progress");
+
+						// otherwise, we gotta setup the classpath and run ourself...
+						// LOW: setup classpath by loading pom.xml and concatenating with
+						// (System.getProperty("user.home") + "/.m2")
+						else
+							progress = Runtime.getRuntime().exec("java -cp \"" + thisJar.getPath() + "\" " + Base.class.getName() + " --progress");
+
 						Runtime.getRuntime().addShutdownHook(new Thread(progress::destroyForcibly));
 					}
 					catch (IOException | URISyntaxException e) {
