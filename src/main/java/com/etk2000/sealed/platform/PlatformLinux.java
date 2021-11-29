@@ -1,8 +1,6 @@
 package com.etk2000.sealed.platform;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -10,14 +8,10 @@ import java.nio.file.attribute.PosixFilePermissions;
 import javax.swing.JFrame;
 
 import com.etk2000.sealed.keys.AuthKey;
-import com.etk2000.sealed.ui.ProgressFrame;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformLinux extends Platform {
-	private Process progress;
-	private int nextTransfererId;
-
 	PlatformLinux() {
 		super(System.getProperty("user.home"));
 	}
@@ -64,31 +58,7 @@ class PlatformLinux extends Platform {
 	}
 
 	@Override
-	protected synchronized LongBiConsumer updateProgressImpl(JFrame frame) {
-		int transfererId = nextTransfererId++;
-		
-		// spawn a new thread/process to handle a progress window
-		return (current, full) -> {
-			synchronized (this) {
-				if (progress == null) {
-					try {
-						progress = Runtime.getRuntime()
-								.exec("java -jar \"" + new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getPath() + "\" --progress");
-						Runtime.getRuntime().addShutdownHook(new Thread(progress::destroyForcibly));
-					}
-					catch (IOException | URISyntaxException e) {
-						e.printStackTrace();
-					}
-				}
-
-				// write the update to our child process, LOW: respawn process if dead?
-				try {
-					ProgressFrame.writeTo(progress, transfererId, current, full);
-				}
-				catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		};
+	protected LongBiConsumer updateProgressImpl(JFrame frame) {
+		return newTransfer(frame);
 	}
 }

@@ -114,9 +114,10 @@ class PlatformWindows extends Platform {
 
 	@Override
 	protected LongBiConsumer updateProgressImpl(JFrame frame) {
-		// setup upload/download progress bar
+		LongBiConsumer ui = newTransfer(frame);
 		Taskbar taskbar = Taskbar.getTaskbar();
 		return (current, full) -> {
+			ui.accept(current, full);
 			if (current == full)
 				taskbar.setWindowProgressState(frame, full == -1 ? State.OFF : State.INDETERMINATE);
 			else {

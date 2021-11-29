@@ -2,15 +2,19 @@ package com.etk2000.sealed.platform;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.swing.JFrame;
 
 import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.ui.ProgressFrame;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 public abstract class Platform {
 	private static final Platform instance;
+	private static int nextTransfererId;
+	private static Process progress;
 
 	static {
 		String os = System.getProperty("os.name").toLowerCase();
@@ -71,6 +75,34 @@ public abstract class Platform {
 		dir = new File(container, "sealed");
 		dirKeys = new File(dir, "keys");
 		dirTmp = new File(dir, "tmp");
+	}
+	
+	protected synchronized LongBiConsumer newTransfer(JFrame frame) {
+		int transfererId = nextTransfererId++;
+		
+		// spawn a new thread/process to handle a progress window
+		return (current, full) -> {
+			synchronized (this) {
+				if (progress == null) {
+					try {
+						progress = Runtime.getRuntime()
+								.exec("java -jar \"" + new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getPath() + "\" --progress");
+						Runtime.getRuntime().addShutdownHook(new Thread(progress::destroyForcibly));
+					}
+					catch (IOException | URISyntaxException e) {
+						e.printStackTrace();
+					}
+				}
+
+				// write the update to our child process, LOW: respawn process if dead?
+				try {
+					ProgressFrame.writeTo(progress, transfererId, current, full);
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		};
 	}
 
 	protected void runSSH(AuthKey key, String remote, String prefix) throws IOException {
