@@ -43,12 +43,12 @@ class PlatformLinux extends Platform {
 	}
 
 	@Override
-	protected void runSSHImpl(AuthKey key, String remote) {
+	protected void runSSHImpl(AuthKey key, String remote) throws IOException {
 		runSSH(key, remote, "");
 	}
 
 	@Override
-	protected void runSSHImpl(String pass, String remote) {
+	protected void runSSHImpl(String pass, String remote) throws IOException {
 		runSSH(pass, remote, "");
 	}
 

@@ -1,6 +1,7 @@
 package com.etk2000.sealed.platform;
 
 import java.io.File;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
@@ -20,17 +21,17 @@ public abstract class Platform {
 		else
 			instance = new PlatformLinux();
 	}
-	
+
 	public static File dir() {
 		instance.dir.mkdirs();
 		return instance.dir;
 	}
-	
+
 	public static File dirKeys() {
 		instance.dirKeys.mkdirs();
 		return instance.dirKeys;
 	}
-	
+
 	public static File dirTmp() {
 		instance.dirTmp.mkdirs();
 		return instance.dirTmp;
@@ -42,19 +43,19 @@ public abstract class Platform {
 			instance.dir.mkdirs();
 		return instance.ensureToolsExistImpl();
 	}
-	
+
 	public static Platform instance() {
 		return instance;
 	}
-	
-	public static void runSSH(AuthKey key, String remote) {
+
+	public static void runSSH(AuthKey key, String remote) throws IOException {
 		instance.runSSHImpl(key, remote);
 	}
-	
-	public static void runSSH(String pass, String remote) {
+
+	public static void runSSH(String pass, String remote) throws IOException {
 		instance.runSSHImpl(pass, remote);
 	}
-	
+
 	public static void setupKeyPerms(String path) {
 		instance.setupKeyPermsImpl(path);
 	}
@@ -62,28 +63,27 @@ public abstract class Platform {
 	public static LongBiConsumer updateProgress(JFrame frame) {
 		return instance.updateProgressImpl(frame);
 	}
-	
+
 	protected final File dir, dirKeys, dirTmp;
 	protected String sshKey, sshPass;
-	
+
 	protected Platform(String container) {
 		dir = new File(container, "sealed");
 		dirKeys = new File(dir, "keys");
 		dirTmp = new File(dir, "tmp");
 	}
 
-	protected boolean runSSH(AuthKey key, String remote, String prefix) {
-		return Util.runForResult(prefix + sshKey.replace("${key}", '"' + key.path() + '"')//
-				.replace("${remote}", remote)) != null;
+	protected void runSSH(AuthKey key, String remote, String prefix) throws IOException {
+		Util.run(prefix + sshKey.replace("${key}", '"' + key.path() + '"').replace("${remote}", remote));
 	}
 
-	protected boolean runSSH(String pass, String remote, String prefix) {
-		return Util.runForResult(prefix + sshPass.replace("${pass}", pass).replace("${remote}", remote)) != null;
+	protected void runSSH(String pass, String remote, String prefix) throws IOException {
+		Util.run(prefix + sshPass.replace("${pass}", pass).replace("${remote}", remote));
 	}
-	
+
 	protected abstract boolean ensureToolsExistImpl();
-	protected abstract void runSSHImpl(AuthKey key, String remote);
-	protected abstract void runSSHImpl(String pass, String remote);
+	protected abstract void runSSHImpl(AuthKey key, String remote) throws IOException;
+	protected abstract void runSSHImpl(String pass, String remote) throws IOException;
 	protected abstract void setupKeyPermsImpl(String path);
 	protected abstract LongBiConsumer updateProgressImpl(JFrame frame);
 }

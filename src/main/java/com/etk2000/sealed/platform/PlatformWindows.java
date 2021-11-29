@@ -3,6 +3,7 @@ package com.etk2000.sealed.platform;
 import java.awt.Taskbar;
 import java.awt.Taskbar.State;
 import java.io.File;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
@@ -77,16 +78,30 @@ class PlatformWindows extends Platform {
 
 	// attempt to run in Windows Terminal, but fallback to cmd
 	@Override
-	protected void runSSHImpl(AuthKey key, String remote) {
-		if (!runSSH(key, remote, "wt nt "))
-			runSSH(key, remote, "cmd /c start \"\" ");
+	protected void runSSHImpl(AuthKey key, String remote) throws IOException {
+		try {
+			runSSH(key, remote, "wt nt ");
+		}
+		catch (IOException e) {
+			if (e.getMessage().contains("cannot find the file"))
+				runSSH(key, remote, "cmd /c start \"\" ");
+			else
+				throw e;
+		}
 	}
 
 	// attempt to run in Windows Terminal, but fallback to cmd
 	@Override
-	protected void runSSHImpl(String pass, String remote) {
-		if (!runSSH(pass, remote, "wt nt "))
-			runSSH(pass, remote, "cmd /c start \"\" ");
+	protected void runSSHImpl(String pass, String remote) throws IOException {
+		try {
+			runSSH(pass, remote, "wt nt ");
+		}
+		catch (IOException e) {
+			if (e.getMessage().contains("cannot find the file"))
+				runSSH(pass, remote, "cmd /c start \"\" ");
+			else
+				throw e;
+		}
 	}
 
 	@Override

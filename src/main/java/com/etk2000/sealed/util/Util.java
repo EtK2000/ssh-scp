@@ -58,6 +58,10 @@ public class Util {
 		return false;
 	}
 
+	public static void run(String command) throws IOException {
+		Runtime.getRuntime().exec(command);
+	}
+
 	public static String runForResult(String command) {
 		try {
 			Process p = Runtime.getRuntime().exec(command);

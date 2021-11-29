@@ -1,11 +1,14 @@
 package com.etk2000.sealed.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.ItemSelectable;
 import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,7 +29,9 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JRadioButton;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 
@@ -39,24 +44,37 @@ import com.etk2000.sealed.service.ServiceExec;
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
 	private static void connect(MainFrame owner, Server srv, boolean ssh) {
-		owner.setEnabled(false);// disable clicking until new window opens
-		if (ssh) {
-			new Thread(() -> {
-				SwingUtilities.invokeLater(() -> owner.setEnabled(true));// restore clicking, FIXME: wait for session to open
-				if (srv.pass != null)
-					Platform.runSSH(srv.pass, srv.user + '@' + srv.address());
-				else
-					Platform.runSSH(srv.key, srv.user + '@' + srv.address());
-			}).start();
-		}
-		else {
+		setEnabled(owner, false);// disable clicking until new window opens
+		new Thread(() -> {
 			try {
-				new ExplorerFrame(owner, srv).setVisible(true);
+				if (ssh) {
+					if (srv.pass != null)
+						Platform.runSSH(srv.pass, srv.user + '@' + srv.address());
+					else
+						Platform.runSSH(srv.key, srv.user + '@' + srv.address());
+				}
+				else {
+					ExplorerFrame ef = new ExplorerFrame(owner, srv);
+					ef.setVisible(true);
+				}
 			}
 			catch (IOException e) {
-				e.printStackTrace();
+				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
 			}
-			owner.setEnabled(true);// restore clicking
+			finally {
+				setEnabled(owner, true);// restore clicking
+			}
+		}).start();
+	}
+
+	private static void setEnabled(Container container, boolean enabled) {
+		for (Component comp : container.getComponents()) {
+			if (comp instanceof ItemSelectable)
+				comp.setEnabled(enabled);
+			else if (comp instanceof Container)
+				setEnabled((Container) comp, enabled);
+			else
+				comp.setEnabled(enabled);
 		}
 	}
 
@@ -117,6 +135,7 @@ public class MainFrame extends JFrame {
 						// FIXME: have popup as a final field
 						final JPopupMenu popupMenu = new JPopupMenu();
 
+						// add "Relaunch" if this tab can be relaunched
 						final Component tab = tabs.getTabComponentAt(index);
 						if (tab != null && tab instanceof RelaunchTab) {
 							final JMenuItem relaunch = new JMenuItem("Relaunch");
@@ -124,13 +143,33 @@ public class MainFrame extends JFrame {
 							popupMenu.add(relaunch);
 						}
 
+						// add "Relaunch All" if any tabs other than this can be relaunched
+						for (int i = 0; i < tabs.getTabCount(); i++) {
+							if (i != index && tabs.getTabComponentAt(i) instanceof RelaunchTab) {
+								final JMenuItem relaunchAll = new JMenuItem("Relaunch All");
+								relaunchAll.addActionListener(x -> {
+									for (int _i = 0; _i < tabs.getTabCount(); _i++) {
+										Component _tab = tabs.getTabComponentAt(_i);
+										if (_tab instanceof RelaunchTab)
+											((RelaunchTab) _tab).relaunch();
+									}
+								});
+								popupMenu.add(relaunchAll);
+								break;
+							}
+						}
+
+						// add "Close" because all tabs can be closed
 						final JMenuItem close = new JMenuItem("Close");
 						close.addActionListener(x -> tabs.removeTabAt(index));
 						popupMenu.add(close);
 
-						final JMenuItem closeAll = new JMenuItem("Close all");
-						closeAll.addActionListener(x -> tabs.removeAll());
-						popupMenu.add(closeAll);
+						// add "Close All" if there are any other tabs
+						if (tabs.getTabCount() > 1) {
+							final JMenuItem closeAll = new JMenuItem("Close all");
+							closeAll.addActionListener(x -> tabs.removeAll());
+							popupMenu.add(closeAll);
+						}
 
 						final Rectangle tabBounds = tabs.getBoundsAt(index);
 						popupMenu.show(tabs, tabBounds.x, tabBounds.y + tabBounds.height);
@@ -195,22 +234,22 @@ public class MainFrame extends JFrame {
 	void run(ServiceExec exec, RelaunchTab tab, List<String> relaunchVars) {
 		JPanel loading = new JPanel(new BorderLayout());
 		loading.add(new JLabel(new ImageIcon(getClass().getResource("/ajax-loader.gif"))), BorderLayout.CENTER);
-		
+
 		{
 			int index = center.indexOfTabComponent(tab);
-			
+
 			// if it's a relaunch, update the existing tab
 			if (tab != null && index != -1) {
 				center.setComponentAt(index, loading);
 				center.setTabComponentAt(index, null);
 				center.setTitleAt(index, exec.name + " - in progress");
 			}
-			
+
 			// otherwise, add a new tab
 			else
 				center.add(exec.name + " - in progress", loading);
 		}
-		
+
 		center.setBorder(BORDER_TABS);
 
 		// process in a background thread
@@ -241,6 +280,17 @@ public class MainFrame extends JFrame {
 				center.setTabComponentAt(index, new RelaunchTab(this, title, exec, vars));
 			});
 		}).start();
+	}
+
+	private void logException(String title, Exception e) {
+		JTextArea err = new JTextArea();
+		err.setDisabledTextColor(Color.RED);
+		err.setEnabled(false);
+		err.setFont(UIManager.getFont("TextField.font"));
+
+		err.setText("Caught exception:\n" + e.getClass().getName() + ": " + e.getMessage());
+		e.printStackTrace();
+		center.add(title, err);
 	}
 
 	@Override
