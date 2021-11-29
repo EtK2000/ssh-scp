@@ -4,8 +4,8 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.etk2000</groupId>
 	<artifactId>sealed</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
-	<name>Sealed</name>
+	<version>0.0.3</version>
+	<name>ssh-scp</name>
 	<dependencyManagement>
 		<dependencies>
 			<!-- AWS dependencies -->
