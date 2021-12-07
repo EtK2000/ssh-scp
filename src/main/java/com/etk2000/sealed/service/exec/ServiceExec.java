@@ -36,11 +36,10 @@ public class ServiceExec {
 			}
 			catch (IOException e) {
 				JTextArea err = new JTextArea();
-				err.setDisabledTextColor(Color.RED);
-				err.setEnabled(false);
+				err.setForeground(Color.RED);
+				err.setEditable(false);
 				err.setFont(UIManager.getFont("TextField.font"));
 				output.add(err);
-				// FIXME: allow text selection
 
 				if (e instanceof ServiceException)
 					err.setText("Execution stopped at segment: " + segment + '\n' + e.getMessage());

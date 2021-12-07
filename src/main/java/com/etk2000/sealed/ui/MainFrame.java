@@ -284,8 +284,8 @@ public class MainFrame extends JFrame {
 
 	private void logException(String title, Exception e) {
 		JTextArea err = new JTextArea();
-		err.setDisabledTextColor(Color.RED);
-		err.setEnabled(false);
+		err.setForeground(Color.RED);
+		err.setEditable(false);
 		err.setFont(UIManager.getFont("TextField.font"));
 
 		err.setText("Caught exception:\n" + e.getClass().getName() + ": " + e.getMessage());
