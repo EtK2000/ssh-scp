@@ -39,7 +39,7 @@ import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.config.Server.AreaAccess;
 import com.etk2000.sealed.platform.Platform;
-import com.etk2000.sealed.service.ServiceExec;
+import com.etk2000.sealed.service.exec.ServiceExec;
 
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
@@ -266,13 +266,13 @@ public class MainFrame extends JFrame {
 
 				// modify the loading tab
 				if (index != -1) {
-					center.setComponentAt(index, out);
+					center.setComponentAt(index, out);//FIXME: new JScrollPane(out)
 					center.setTitleAt(index, title);
 				}
 
 				// or if it was closed, open a new tab
 				else {
-					center.add(title, out);
+					center.add(title, out);//FIXME: new JScrollPane(out)
 					index = center.indexOfComponent(out);
 				}
 

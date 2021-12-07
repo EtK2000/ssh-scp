@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server.AreaAccess;
 import com.etk2000.sealed.util.Util;
 
@@ -16,7 +15,7 @@ class ThreadAccessStatus extends Thread {
 			return AreaAccess.vpn;
 		
 		try {
-			if (Config.isOfficeIP(Util.urlGET("https://checkip.amazonaws.com/")))
+			if (Util.isInOffice())
 				return AreaAccess.office;
 		}
 		catch (IOException e) {

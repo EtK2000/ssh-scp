@@ -149,6 +149,7 @@ public class JAnsiPane extends JTextPane {
 					break;
 				}
 
+				// FIXME: add support for other escapes (background, underline, clear, etc)
 				current = getANSIColor(str.substring(aPos, mIndex + 1), current);
 				aPos = mIndex + 1;
 // now we have the color, send text that is in that color (up to next escape)

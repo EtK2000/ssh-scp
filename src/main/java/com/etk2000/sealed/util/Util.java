@@ -17,6 +17,8 @@ import java.util.Scanner;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import com.etk2000.sealed.config.Config;
+
 public class Util {
 	public static void delete(File f) {
 		if (f.isFile())
@@ -39,6 +41,10 @@ public class Util {
 			e.printStackTrace();
 			return false;
 		}
+	}
+	
+	public static boolean isInOffice() throws IOException {
+		return Config.isOfficeIP(Util.urlGET("https://checkip.amazonaws.com/"));
 	}
 
 	public static boolean isUsingVPN() {

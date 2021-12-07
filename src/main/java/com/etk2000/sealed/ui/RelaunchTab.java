@@ -4,7 +4,7 @@ import java.util.List;
 
 import javax.swing.JLabel;
 
-import com.etk2000.sealed.service.ServiceExec;
+import com.etk2000.sealed.service.exec.ServiceExec;
 
 @SuppressWarnings("serial")
 class RelaunchTab extends JLabel {

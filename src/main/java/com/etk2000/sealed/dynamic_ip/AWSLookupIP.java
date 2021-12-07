@@ -65,7 +65,7 @@ public class AWSLookupIP extends DynamicIP {
 
 	@Override
 	public void fetch(BiConsumer<Server, String> onFound) {
-		DescribeRegionsResult result = ec2(Regions.DEFAULT_REGION.name()).describeRegions();
+		DescribeRegionsResult result = ec2(Regions.DEFAULT_REGION.getName()).describeRegions();
 		List<Thread> ts = new ArrayList<>(result.getRegions().size());
 		List<Instance> instances = new ArrayList<>();
 
