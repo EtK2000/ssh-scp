@@ -1,9 +1,10 @@
 package com.etk2000.sealed.dynamic_ip;
 
 import java.io.IOException;
-import java.util.function.BiConsumer;
+import java.util.List;
 
 import com.etk2000.sealed.config.Server;
+import com.google.cloud.Tuple;
 import com.google.gson.stream.JsonReader;
 
 public abstract class DynamicIP {
@@ -62,5 +63,5 @@ public abstract class DynamicIP {
 		return res;
 	}
 	
-	public abstract void fetch(BiConsumer<Server, String> onFound);
+	public abstract List<Tuple<Server, String>> fetch();
 }

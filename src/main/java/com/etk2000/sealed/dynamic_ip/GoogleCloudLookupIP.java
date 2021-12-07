@@ -3,14 +3,16 @@ package com.etk2000.sealed.dynamic_ip;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.function.BiConsumer;
 
 import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.platform.Platform;
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.Tuple;
 import com.google.cloud.compute.v1.Instance;
 import com.google.cloud.compute.v1.InstancesClient;
 import com.google.cloud.compute.v1.InstancesScopedList;
@@ -30,7 +32,8 @@ class GoogleCloudLookupIP extends DynamicIP {
 	}
 
 	@Override
-	public void fetch(BiConsumer<Server, String> onFound) {
+	public List<Tuple<Server, String>> fetch() {
+		List<Tuple<Server, String>> res = new ArrayList<>();
 		try {
 			try (InstancesClient instances = InstancesClient.create(InstancesSettings.newBuilder().setCredentialsProvider(provider).build())) {
 				for (Entry<String, InstancesScopedList> zone : instances.aggregatedList(projectID).iterateAll()) {
@@ -45,16 +48,14 @@ class GoogleCloudLookupIP extends DynamicIP {
 							for (NetworkInterface netInt : instance.getNetworkInterfacesList()) {
 								if (netInt.getAccessConfigsCount() > 0 && !netInt.getAccessConfigs(0).getNatIP().isEmpty()) {
 									found = true;
-									onFound.accept(server, netInt.getAccessConfigs(0).getNatIP());
+									res.add(Tuple.of(server, netInt.getAccessConfigs(0).getNatIP()));
 									break;
 								}
 							}
 
 							// if no IP was found, set it to null
 							if (!found)
-								onFound.accept(server, null);
-
-							System.out.println("updated: " + instance.getName() + " (" + instance.getStatus() + ')');
+								res.add(Tuple.of(server, null));
 						}
 					}
 				}
@@ -63,5 +64,6 @@ class GoogleCloudLookupIP extends DynamicIP {
 		catch (IOException e) {
 			e.printStackTrace();
 		}
+		return res;
 	}
 }

@@ -37,7 +37,7 @@ class KeySupplierGithub extends KeySupplier {
 		try (ZipFile unzip = new ZipFile(zip)) {
 			for (Enumeration<? extends ZipEntry> entries = unzip.entries(); entries.hasMoreElements();) {
 				ZipEntry entry = entries.nextElement();
-				if (!entry.isDirectory()) {
+				if (!entry.isDirectory() && !entry.getName().contains("..")) {
 					File key = new File(Platform.dirKeys(), entry.getName().substring(entry.getName().lastIndexOf('/') + 1));
 					try (FileOutputStream fos = new FileOutputStream(key)) {
 						unzip.getInputStream(entry).transferTo(fos);

@@ -66,7 +66,7 @@ public class JAnsiPane extends JTextPane {
 						final int startOffset = viewToModel2D(new Point(e.getX(), e.getY()));
 						if (startOffset == -1 || startOffset >= getDocument().getLength())
 							return;
-						
+
 						final String text = getDocument().getText(0, getDocument().getLength());
 
 						// get whole URL
@@ -152,7 +152,6 @@ public class JAnsiPane extends JTextPane {
 				// FIXME: add support for other escapes (background, underline, clear, etc)
 				current = getANSIColor(str.substring(aPos, mIndex + 1), current);
 				aPos = mIndex + 1;
-// now we have the color, send text that is in that color (up to next escape)
 
 				// if that was the last sequence, add the remaining text and finish
 				if ((aIndex = str.indexOf('\u001B', aPos)) == -1) {
@@ -160,7 +159,7 @@ public class JAnsiPane extends JTextPane {
 					break;
 				}
 
-				// there are more escape sequences, append until the next one
+				// there are more escape sequences, so append until the next one
 				append(current, str.substring(aPos, aIndex));
 				aPos = aIndex;
 			}

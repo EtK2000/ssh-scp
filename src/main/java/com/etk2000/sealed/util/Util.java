@@ -81,6 +81,14 @@ public class Util {
 			return null;
 		}
 	}
+	
+	public static void ignoreInterrupt(ExceptableRunnable<InterruptedException> r) {
+		try {
+			r.run();
+		}
+		catch (InterruptedException e) {
+		}
+	}
 
 	public static String urlGET(String url) throws IOException {
 		try (Scanner s = new Scanner(new URL(url).openStream()).useDelimiter("\\Z")) {

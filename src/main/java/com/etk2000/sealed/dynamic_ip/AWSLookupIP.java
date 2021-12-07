@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -24,6 +23,8 @@ import com.amazonaws.services.ec2.model.Tag;
 import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.platform.Platform;
+import com.etk2000.sealed.util.Util;
+import com.google.cloud.Tuple;
 
 public class AWSLookupIP extends DynamicIP {
 	private static void checkRegion(List<Instance> out, AmazonEC2 ec2) {
@@ -64,7 +65,7 @@ public class AWSLookupIP extends DynamicIP {
 	}
 
 	@Override
-	public void fetch(BiConsumer<Server, String> onFound) {
+	public List<Tuple<Server, String>> fetch() {
 		DescribeRegionsResult result = ec2(Regions.DEFAULT_REGION.getName()).describeRegions();
 		List<Thread> ts = new ArrayList<>(result.getRegions().size());
 		List<Instance> instances = new ArrayList<>();
@@ -77,17 +78,12 @@ public class AWSLookupIP extends DynamicIP {
 		}
 
 		// wait for lookup to complete
-		for (Thread t : ts) {
-			try {
-				t.join();
-			}
-			catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		ts.forEach(t -> Util.ignoreInterrupt(t::join));
 
 		// update servers that have associated instances
+		List<Tuple<Server, String>> res = new ArrayList<>();
 		for (Instance instance : instances) {
+			
 			// check for a name we can use to identify the server
 			String name = null;
 			for (Tag t : instance.getTags()) {
@@ -96,16 +92,15 @@ public class AWSLookupIP extends DynamicIP {
 					break;
 				}
 			}
-			if (name == null)
-				continue;
+			if (name != null) {
 
-			// ensure we have a correlating server
-			Server server = Config.getServer(name);
-			if (server == null)
-				continue;
-
-			onFound.accept(server, instance.getPublicIpAddress());
-			System.out.println("updated: " + name + " (" + instance.getState().getName() + ')');
+				// ensure we have a correlating server
+				Server server = Config.getServer(name);
+				if (server != null)
+					res.add(Tuple.of(server, instance.getPublicIpAddress()));
+			}
 		}
+		
+		return res;
 	}
 }
