@@ -7,7 +7,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 
 import javax.swing.JFrame;
 
-import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
@@ -37,13 +37,8 @@ class PlatformLinux extends Platform {
 	}
 
 	@Override
-	protected void runSSHImpl(AuthKey key, String remote) throws IOException {
-		runSSH(key, remote, "");
-	}
-
-	@Override
-	protected void runSSHImpl(String pass, String remote) throws IOException {
-		runSSH(pass, remote, "");
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
+		runSSH(srv, newProcess ? "x-terminal-emulator -e " : "");
 	}
 
 	@Override

@@ -1,5 +1,8 @@
 package com.etk2000.sealed.platform;
 
+import java.io.IOException;
+
+import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.util.Util;
 
 class PlatformMac extends PlatformLinux {
@@ -15,10 +18,15 @@ class PlatformMac extends PlatformLinux {
 
 		// ensure sshpass was installed
 		if (sshpass.length() > 0) {
-			sshKey = "open -a iTerm " + sshpass + " -i ${key} ${remote}";
-			sshPass = "open -a iTerm " + sshpass + " -p ${pass} ssh ${remote}";
+			sshKey = sshpass + " -i ${key} ${remote}";
+			sshPass = sshpass + " -p ${pass} ssh ${remote}";
 			return true;
 		}
 		return false;
+	}
+	
+	@Override
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
+		runSSH(srv, newProcess ? "open -a iTerm " : "");
 	}
 }

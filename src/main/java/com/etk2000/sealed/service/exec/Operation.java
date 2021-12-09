@@ -1,16 +1,16 @@
 package com.etk2000.sealed.service.exec;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
 
 import javax.swing.JPanel;
 
+import com.etk2000.sealed.service.exec.ExecLog.LogColor;
 import com.etk2000.sealed.ui.MainFrame;
 import com.google.gson.stream.JsonReader;
 
 public abstract class Operation {
-	protected static final Color COMMAND = Color.BLUE, STDERR = Color.RED, STDOUT = Color.GRAY;
+	protected static final LogColor COMMAND = LogColor.BRIGHT_BLUE, STDERR = LogColor.BRIGHT_RED, STDOUT = LogColor.BRIGHT_BLACK;
 
 	static Operation read(JsonReader jr) throws IOException {
 		String name = jr.nextName();

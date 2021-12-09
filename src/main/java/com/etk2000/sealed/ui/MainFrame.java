@@ -47,16 +47,10 @@ public class MainFrame extends JFrame {
 		setEnabled(owner, false);// disable clicking until new window opens
 		new Thread(() -> {
 			try {
-				if (ssh) {
-					if (srv.pass != null)
-						Platform.runSSH(srv.pass, srv.user + '@' + srv.address());
-					else
-						Platform.runSSH(srv.key, srv.user + '@' + srv.address());
-				}
-				else {
-					ExplorerFrame ef = new ExplorerFrame(owner, srv);
-					ef.setVisible(true);
-				}
+				if (ssh)
+					Platform.runSSH(srv, true);
+				else
+					new ExplorerFrame(owner, srv).setVisible(true);
 			}
 			catch (IOException e) {
 				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);

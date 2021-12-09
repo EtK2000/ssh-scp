@@ -7,7 +7,7 @@ import java.io.IOException;
 
 import javax.swing.JFrame;
 
-import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
@@ -78,27 +78,13 @@ class PlatformWindows extends Platform {
 
 	// attempt to run in Windows Terminal, but fallback to cmd
 	@Override
-	protected void runSSHImpl(AuthKey key, String remote) throws IOException {
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
 		try {
-			runSSH(key, remote, "wt nt ");
+			runSSH(srv, newProcess ? "wt nt " : "");
 		}
 		catch (IOException e) {
 			if (e.getMessage().contains("cannot find the file"))
-				runSSH(key, remote, "cmd /c start \"\" ");
-			else
-				throw e;
-		}
-	}
-
-	// attempt to run in Windows Terminal, but fallback to cmd
-	@Override
-	protected void runSSHImpl(String pass, String remote) throws IOException {
-		try {
-			runSSH(pass, remote, "wt nt ");
-		}
-		catch (IOException e) {
-			if (e.getMessage().contains("cannot find the file"))
-				runSSH(pass, remote, "cmd /c start \"\" ");
+				runSSH(srv, newProcess ? "cmd /c start \"\" " : "");
 			else
 				throw e;
 		}

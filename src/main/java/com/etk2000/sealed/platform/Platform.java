@@ -7,7 +7,7 @@ import java.net.URISyntaxException;
 import javax.swing.JFrame;
 
 import com.etk2000.sealed.Base;
-import com.etk2000.sealed.keys.AuthKey;
+import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.ui.ProgressFrame;
 import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
@@ -53,12 +53,8 @@ public abstract class Platform {
 		return instance;
 	}
 
-	public static void runSSH(AuthKey key, String remote) throws IOException {
-		instance.runSSHImpl(key, remote);
-	}
-
-	public static void runSSH(String pass, String remote) throws IOException {
-		instance.runSSHImpl(pass, remote);
+	public static void runSSH(Server srv, boolean newProcess) throws IOException {
+		instance.runSSHImpl(srv, newProcess);
 	}
 
 	public static void setupKeyPerms(String path) {
@@ -116,17 +112,19 @@ public abstract class Platform {
 		};
 	}
 
-	protected void runSSH(AuthKey key, String remote, String prefix) throws IOException {
-		Util.run(prefix + sshKey.replace("${key}", '"' + key.path() + '"').replace("${remote}", remote));
-	}
-
-	protected void runSSH(String pass, String remote, String prefix) throws IOException {
-		Util.run(prefix + sshPass.replace("${pass}", pass).replace("${remote}", remote));
+	protected void runSSH(Server srv, String prefix) throws IOException {
+		final String remote = srv.user + '@' + srv.address();
+		if (srv.pass != null)
+			Util.run(prefix + sshPass.replace("${pass}", srv.pass).replace("${remote}", remote));
+		else
+			Util.run(prefix + sshKey.replace("${key}", '"' + srv.key.path() + '"').replace("${remote}", remote));
 	}
 
 	protected abstract boolean ensureToolsExistImpl();
-	protected abstract void runSSHImpl(AuthKey key, String remote) throws IOException;
-	protected abstract void runSSHImpl(String pass, String remote) throws IOException;
+
+	protected abstract void runSSHImpl(Server srv, boolean newProcess) throws IOException;
+
 	protected abstract void setupKeyPermsImpl(String path);
+
 	protected abstract LongBiConsumer updateProgressImpl(JFrame frame);
 }

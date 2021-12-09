@@ -39,13 +39,25 @@ public class Config {
 		FILE.delete();
 	}
 
-	public static synchronized void load() throws IOException {
+	public static synchronized void load(String file) throws IOException {
 		synchronized (servers) {
 			if (FILE.isDirectory())
 				Util.delete(FILE);
+			
+			if (file != null) {
+				File f = new File(file);
+				if (f.exists()) {
+					FILE.getParentFile().mkdirs();
+					Files.copy(f, FILE);
+				}
+				else
+					System.err.println("failed to find supplied config '" + f.getAbsolutePath() + '\'');
+			}
 
 			// open file selection dialog if no config exists
 			if (!FILE.exists()) {
+				
+				// FIXME: add a headless way to ask for file (ask for path in stdin)
 				JFileChooser jfc = new JFileChooser();
 				jfc.setDialogTitle("Select Config To Import");
 				jfc.setFileFilter(new FileNameExtensionFilter("JavaScript Object Notation (*.json)", "json"));

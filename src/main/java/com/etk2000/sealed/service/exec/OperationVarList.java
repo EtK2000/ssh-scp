@@ -1,19 +1,23 @@
 package com.etk2000.sealed.service.exec;
 
+import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.List;
+import java.util.Scanner;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.etk2000.sealed.service.ServiceException;
+import com.etk2000.sealed.service.exec.ExecLog.LogColor;
 import com.etk2000.sealed.ui.MainFrame;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
 class OperationVarList extends Operation {
-	private final List<String> execs = new ArrayList<>(), options = new ArrayList<>();
+	private final String[] execs, options;
 	private final String title;
 	private final byte var;
 
@@ -23,12 +27,14 @@ class OperationVarList extends Operation {
 		title = name.substring(index + 1);
 		var = Byte.parseByte(name.substring(2, index));
 
+		List<String> lExecs = new ArrayList<>(), lOptions = new ArrayList<>();
+
 		// arrays are simple sets
 		if (jr.peek() == JsonToken.BEGIN_ARRAY) {
 			jr.beginArray();
 			{
 				while (jr.hasNext())
-					options.add(jr.nextString());
+					lOptions.add(jr.nextString());
 			}
 			jr.endArray();
 		}
@@ -38,12 +44,15 @@ class OperationVarList extends Operation {
 			jr.beginObject();
 			{
 				while (jr.hasNext()) {
-					options.add(jr.nextName());
-					execs.add(jr.nextString());
+					lOptions.add(jr.nextName());
+					lExecs.add(jr.nextString());
 				}
 			}
 			jr.endObject();
 		}
+
+		execs = lExecs.toArray(new String[0]);
+		options = lOptions.toArray(new String[0]);
 	}
 
 	@Override
@@ -51,18 +60,46 @@ class OperationVarList extends Operation {
 		if (isRelaunch && vars.size() > var)
 			return;
 
-		int selection = JOptionPane.showOptionDialog(parent, "Please select a value for '" + title + '\'', title, JOptionPane.CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-				options.toArray(new String[0]), null);
+		int selection;
 
-		if (selection == JOptionPane.CLOSED_OPTION)
-			throw new ServiceException("value for '" + title + "' not selected");
+		if (GraphicsEnvironment.isHeadless()) {
+			try (Scanner in = new Scanner(System.in)) {
+				for (;;) {
+					System.out.println(LogColor.BRIGHT_BLUE + "Please select a value for '" + title + '\'');
+					for (int i = 0; i < options.length; i++)
+						System.out.println(i + ") " + options[i]);
+					System.out.print(LogColor.RESET);
 
-		setVar(var, options.get(selection), vars);
+					try {
+						int index = in.nextInt();
+						if (index >= 0 && index < options.length) {
+							selection = index;
+							break;
+						}
+						
+						System.err.println(LogColor.BRIGHT_RED + "index must be >= 0 and < " + options.length + LogColor.RESET);
+					}
+					catch (InputMismatchException e) {
+						System.err.println(LogColor.BRIGHT_RED + "expected a numeric index" + LogColor.RESET);
+						in.next();// restore to a valid state
+					}
+				}
+			}
+		}
+		else {
+			selection = JOptionPane.showOptionDialog(parent, "Please select a value for '" + title + '\'', title, JOptionPane.CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+					options, null);
+
+			if (selection == JOptionPane.CLOSED_OPTION)
+				throw new ServiceException("value for '" + title + "' not selected");
+		}
+
+		setVar(var, options[selection], vars);
 
 		// if there's exec data associated, execute it
-		if (execs.size() != 0) {
+		if (execs.length != 0) {
 			// FIXME: allow more powerful logic
-			String exec = execs.get(selection);
+			String exec = execs[selection];
 
 			if (exec.charAt(0) == '$') {
 				int index = exec.indexOf(' ');

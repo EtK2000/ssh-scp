@@ -1,6 +1,5 @@
 package com.etk2000.sealed.service.exec;
 
-import java.awt.Color;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,9 @@ import javax.swing.JScrollPane;
 
 import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
+import com.etk2000.sealed.headless.ConsoleExecLog;
 import com.etk2000.sealed.service.ServiceException;
+import com.etk2000.sealed.service.exec.ExecLog.LogColor;
 import com.etk2000.sealed.ui.JAnsiPane;
 import com.etk2000.sealed.ui.MainFrame;
 import com.etk2000.sealed.util.CommandConnection;
@@ -46,7 +47,7 @@ public class OperationExec extends Operation {
 				if (noEcho)
 					exec = exec.substring(1);
 
-				JAnsiPane log = new JAnsiPane(Color.GRAY);
+				ExecLog log = output != null ? new JAnsiPane(STDOUT) : new ConsoleExecLog();
 				String command = varReplace(exec, vars);
 
 				if (!noEcho)
@@ -57,14 +58,23 @@ public class OperationExec extends Operation {
 				if (res.stderr.length() > 0)
 					log.appendANSI('\n' + res.stderr.replaceFirst("\\s++$", ""), STDERR);
 
-				// add in scroll if 10+ lines
-				int lines = 0;
-				String txt = log.getText();
-				for (int i = 0; i != -1 && lines < 10;) {
-					if ((i = txt.indexOf('\n', i + 1)) != -1)
-						lines++;
+				// add to UI if specified
+				if (output != null) {
+					JAnsiPane pane = (JAnsiPane) log;
+					
+					// add in scroll if 10+ lines
+					int lines = 0;
+					String txt = pane.getText();
+					for (int i = 0; i != -1 && lines < 10;) {
+						if ((i = txt.indexOf('\n', i + 1)) != -1)
+							lines++;
+					}
+					output.add(lines >= 10 ? new JScrollPane(pane) : pane);
 				}
-				output.add(lines >= 10 ? new JScrollPane(log) : log);
+				
+				// otherwise, do nothing as the log has already output everything
+				else
+					System.out.print(LogColor.RESET);
 			}
 		}
 	}

@@ -2,7 +2,6 @@ package com.etk2000.sealed.ui;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
@@ -19,8 +18,10 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
+import com.etk2000.sealed.service.exec.ExecLog;
+
 @SuppressWarnings("serial")
-public class JAnsiPane extends JTextPane {
+public class JAnsiPane extends JTextPane implements ExecLog {
 	private static boolean isValidHTTP(char c) {
 		try {
 			return !Character.isWhitespace(c) && (c == ':' || c == '/' || c == '?' || c == '=' || c == '&' || URLEncoder.encode(Character.toString(c), UTF_8.name()).length() == 1);
@@ -31,29 +32,10 @@ public class JAnsiPane extends JTextPane {
 		}
 	}
 
-	private static final float DARK = 0.502f;
-
-	private static final Color BRIGHT_BLACK = Color.getHSBColor(0, 0, DARK);
-	private static final Color BRIGHT_BLUE = Color.getHSBColor(0.667f, 1, 1);
-	private static final Color BRIGHT_CYAN = Color.getHSBColor(0.5f, 1, 1);
-	private static final Color BRIGHT_GREEN = Color.getHSBColor(0.333f, 1, 1);
-	private static final Color BRIGHT_MAGENTA = Color.getHSBColor(0.833f, 1, 1);
-	private static final Color BRIGHT_RED = Color.getHSBColor(0, 1, 1);
-	private static final Color BRIGHT_WHITE = Color.getHSBColor(0, 0, 1);
-	private static final Color BRIGHT_YELLOW = Color.getHSBColor(0.167f, 1, 1);
-	private static final Color DARK_BLACK = Color.getHSBColor(0, 0, 0);
-	private static final Color DARK_BLUE = Color.getHSBColor(0.667f, 1, DARK);
-	private static final Color DARK_CYAN = Color.getHSBColor(0.5f, 1, DARK);
-	private static final Color DARK_GREEN = Color.getHSBColor(0.333f, 1, DARK);
-	private static final Color DARK_MAGENTA = Color.getHSBColor(0.833f, 1, DARK);
-	private static final Color DARK_RED = Color.getHSBColor(0, 1, DARK);
-	private static final Color DARK_WHITE = Color.getHSBColor(0, 0, 0.753f);
-	private static final Color DARK_YELLOW = Color.getHSBColor(0.167f, 1, DARK);
-
-	private Color base, current;
+	private LogColor base, current;
 	private String remaining = "";
 
-	public JAnsiPane(Color initial) {
+	public JAnsiPane(LogColor initial) {
 		base = current = initial;
 		super.setEditable(false);
 
@@ -100,17 +82,19 @@ public class JAnsiPane extends JTextPane {
 		});
 	}
 
-	public void append(Color c, String s) {
+	@Override
+	public void append(LogColor c, String s) {
 		try {
-			getDocument().insertString(getDocument().getLength(), s, StyleContext.getDefaultStyleContext().addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c));
+			getDocument().insertString(getDocument().getLength(), s, StyleContext.getDefaultStyleContext().addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c.color));
 		}
 		catch (BadLocationException e) {
 			e.printStackTrace();// should never get here
 		}
 	}
 
-	public void appendANSI(String s, Color base) {
-		final Color oldBase = this.base, oldCurrent = current;
+	@Override
+	public void appendANSI(String s, LogColor base) {
+		final LogColor oldBase = this.base, oldCurrent = current;
 		this.base = current = base;
 		try {
 			appendANSI(s);
@@ -121,6 +105,7 @@ public class JAnsiPane extends JTextPane {
 		}
 	}
 
+	@Override
 	public void appendANSI(String s) {
 		int aPos = 0, aIndex, mIndex;
 		String str = remaining + s;
@@ -150,7 +135,7 @@ public class JAnsiPane extends JTextPane {
 				}
 
 				// FIXME: add support for other escapes (background, underline, clear, etc)
-				current = getANSIColor(str.substring(aPos, mIndex + 1), current);
+				current = LogColor.getANSIColor(str.substring(aPos, mIndex + 1), base, current);
 				aPos = mIndex + 1;
 
 				// if that was the last sequence, add the remaining text and finish
@@ -163,63 +148,6 @@ public class JAnsiPane extends JTextPane {
 				append(current, str.substring(aPos, aIndex));
 				aPos = aIndex;
 			}
-		}
-	}
-
-	public Color getANSIColor(String escapeSq, Color current) {
-		switch (escapeSq) {
-			case "\u001B[30m":
-				return DARK_BLACK;
-			case "\u001B[31m":
-				return DARK_RED;
-			case "\u001B[32m":
-				return DARK_GREEN;
-			case "\u001B[33m":
-				return DARK_YELLOW;
-			case "\u001B[34m":
-				return DARK_BLUE;
-			case "\u001B[35m":
-				return DARK_MAGENTA;
-			case "\u001B[36m":
-				return DARK_CYAN;
-			case "\u001B[37m":
-				return DARK_WHITE;
-			case "\u001B[0;30m":
-				return DARK_BLACK;
-			case "\u001B[0;31m":
-				return DARK_RED;
-			case "\u001B[0;32m":
-				return DARK_GREEN;
-			case "\u001B[0;33m":
-				return DARK_YELLOW;
-			case "\u001B[0;34m":
-				return DARK_BLUE;
-			case "\u001B[0;35m":
-				return DARK_MAGENTA;
-			case "\u001B[0;36m":
-				return DARK_CYAN;
-			case "\u001B[0;37m":
-				return DARK_WHITE;
-			case "\u001B[1;30m":
-				return BRIGHT_BLACK;
-			case "\u001B[1;31m":
-				return BRIGHT_RED;
-			case "\u001B[1;32m":
-				return BRIGHT_GREEN;
-			case "\u001B[1;33m":
-				return BRIGHT_YELLOW;
-			case "\u001B[1;34m":
-				return BRIGHT_BLUE;
-			case "\u001B[1;35m":
-				return BRIGHT_MAGENTA;
-			case "\u001B[1;36m":
-				return BRIGHT_CYAN;
-			case "\u001B[1;37m":
-				return BRIGHT_WHITE;
-			case "\u001B[0m":
-				return base;
-			default:
-				return current;
 		}
 	}
 

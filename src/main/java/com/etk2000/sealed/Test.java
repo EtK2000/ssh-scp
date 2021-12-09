@@ -181,7 +181,7 @@ class Console extends JTextPane {
 	}
 
 	public static void main(String[] args) throws Exception {
-		Config.load();
+		Config.load(null);
 		new Console();
 	}
 }
