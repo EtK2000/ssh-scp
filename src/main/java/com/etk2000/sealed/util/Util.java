@@ -14,6 +14,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -42,7 +43,7 @@ public class Util {
 			return false;
 		}
 	}
-	
+
 	public static boolean isInOffice() throws IOException {
 		return Config.isOfficeIP(Util.urlGET("https://checkip.amazonaws.com/"));
 	}
@@ -68,8 +69,20 @@ public class Util {
 		Runtime.getRuntime().exec(command);
 	}
 
-	public static String runForResult(String command) {
+	public static String runForResult(String command, boolean inheritIO) {
 		try {
+			// if IO is to be inherited, set that up
+			if (inheritIO) {
+				StringTokenizer st = new StringTokenizer(command);
+				String[] cmdarray = new String[st.countTokens()];
+				for (int i = 0; st.hasMoreTokens(); i++)
+					cmdarray[i] = st.nextToken();
+
+				new ProcessBuilder(cmdarray).inheritIO().start().waitFor();
+				return null;
+			}
+			
+			// otherwise, run normally
 			Process p = Runtime.getRuntime().exec(command);
 			p.waitFor();
 			try (Scanner s = new Scanner(p.getInputStream()).useDelimiter("\\Z")) {
@@ -81,7 +94,7 @@ public class Util {
 			return null;
 		}
 	}
-	
+
 	public static void ignoreInterrupt(ExceptableRunnable<InterruptedException> r) {
 		try {
 			r.run();

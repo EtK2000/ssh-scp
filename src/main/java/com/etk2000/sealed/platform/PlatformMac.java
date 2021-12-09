@@ -8,12 +8,12 @@ import com.etk2000.sealed.util.Util;
 class PlatformMac extends PlatformLinux {
 	@Override
 	protected boolean ensureToolsExistImpl() {
-		String sshpass = Util.runForResult("which sshpass");
+		String sshpass = Util.runForResult("which sshpass", false);
 		if (sshpass.length() == 0) {
 			// FIXME: maybe allow running without?
 			System.err.println("FIXME: maybe allow running without?");
-			System.out.println(Util.runForResult("brew install hudochenkov/sshpass/sshpass"));
-			sshpass = Util.runForResult("which sshpass");
+			Util.runForResult("brew install hudochenkov/sshpass/sshpass", true);
+			sshpass = Util.runForResult("which sshpass", false);
 		}
 
 		// ensure sshpass was installed
@@ -27,6 +27,6 @@ class PlatformMac extends PlatformLinux {
 	
 	@Override
 	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
-		runSSH(srv, newProcess ? "open -a iTerm " : "");
+		runSSH(srv, newProcess ? "open -a iTerm " : "", newProcess);
 	}
 }

@@ -29,10 +29,10 @@ class PlatformWindows extends Platform {
 		File wslFile = new File(System.getenv("WINDIR") + "/System32/wsl.exe");
 		if (wslFile.exists()) {
 			final String wsl = '"' + wslFile.getAbsolutePath() + '"';
-			String sshpass = Util.runForResult(wsl + " which sshpass");
+			String sshpass = Util.runForResult(wsl + " which sshpass", false);
 			if (sshpass.length() == 0) {
-				Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install sshpass");
-				sshpass = Util.runForResult(wsl + " which sshpass");
+				Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install sshpass", false);
+				sshpass = Util.runForResult(wsl + " which sshpass", false);
 			}
 
 			// ensure sshpass was installed
@@ -41,10 +41,10 @@ class PlatformWindows extends Platform {
 
 			// if we don't have ssh, see if we have it via wsl
 			if (sshKey == null) {
-				String ssh = Util.runForResult(wsl + " which ssh");
+				String ssh = Util.runForResult(wsl + " which ssh", false);
 				if (ssh.length() == 0) {
-					Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install ssh");
-					ssh = Util.runForResult(wsl + " which ssh");
+					Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install ssh", false);
+					ssh = Util.runForResult(wsl + " which ssh", false);
 				}
 
 				// check if ssh was installed
@@ -80,11 +80,11 @@ class PlatformWindows extends Platform {
 	@Override
 	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
 		try {
-			runSSH(srv, newProcess ? "wt nt " : "");
+			runSSH(srv, newProcess ? "wt nt " : "", true);
 		}
 		catch (IOException e) {
 			if (e.getMessage().contains("cannot find the file"))
-				runSSH(srv, newProcess ? "cmd /c start \"\" " : "");
+				runSSH(srv, newProcess ? "cmd /c start \"\" " : "", true);
 			else
 				throw e;
 		}
@@ -93,9 +93,9 @@ class PlatformWindows extends Platform {
 	@Override
 	protected void setupKeyPermsImpl(String path) {
 		// set 700 perms
-		Util.runForResult("icacls \"" + path + "\" /c /t /Inheritance:d");
-		Util.runForResult("icacls \"" + path + "\" /c /t /Grant " + System.getProperty("user.name") + ":F");
-		Util.runForResult("icacls \"" + path + "\" /c /t /Remove:g \"Authenticated Users\" BUILTIN\\Administrators BUILTIN Everyone System Users");
+		Util.runForResult("icacls \"" + path + "\" /c /t /Inheritance:d", true);
+		Util.runForResult("icacls \"" + path + "\" /c /t /Grant " + System.getProperty("user.name") + ":F", true);
+		Util.runForResult("icacls \"" + path + "\" /c /t /Remove:g \"Authenticated Users\" BUILTIN\\Administrators BUILTIN Everyone System Users", true);
 	}
 
 	@Override

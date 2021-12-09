@@ -112,12 +112,18 @@ public abstract class Platform {
 		};
 	}
 
-	protected void runSSH(Server srv, String prefix) throws IOException {
+	protected void runSSH(Server srv, String prefix, boolean newProcess) throws IOException {
 		final String remote = srv.user + '@' + srv.address();
+		String command;
 		if (srv.pass != null)
-			Util.run(prefix + sshPass.replace("${pass}", srv.pass).replace("${remote}", remote));
+			command = prefix + sshPass.replace("${pass}", srv.pass).replace("${remote}", remote);
 		else
-			Util.run(prefix + sshKey.replace("${key}", '"' + srv.key.path() + '"').replace("${remote}", remote));
+			command = prefix + sshKey.replace("${key}", '"' + srv.key.path() + '"').replace("${remote}", remote);
+		
+		if (newProcess)
+			Util.run(command);
+		else
+			Util.runForResult(command, true);
 	}
 
 	protected abstract boolean ensureToolsExistImpl();

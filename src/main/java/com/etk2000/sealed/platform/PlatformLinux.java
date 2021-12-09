@@ -18,13 +18,13 @@ class PlatformLinux extends Platform {
 
 	@Override
 	protected boolean ensureToolsExistImpl() {
-		String sshpass = Util.runForResult("which sshpass");
+		String sshpass = Util.runForResult("which sshpass", false);
 		if (sshpass.length() == 0) {
 			// FIXME: maybe allow running without?
 			System.err.println("FIXME: maybe allow running without?");
 			// FIXME: sudo apt-get install sshpass
 			System.err.println("FIXME: sudo apt-get install sshpass");
-			sshpass = Util.runForResult("which sshpass");
+			sshpass = Util.runForResult("which sshpass", false);
 		}
 
 		// ensure sshpass was installed
@@ -38,7 +38,7 @@ class PlatformLinux extends Platform {
 
 	@Override
 	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
-		runSSH(srv, newProcess ? "x-terminal-emulator -e " : "");
+		runSSH(srv, newProcess ? "x-terminal-emulator -e " : "", newProcess);
 	}
 
 	@Override
