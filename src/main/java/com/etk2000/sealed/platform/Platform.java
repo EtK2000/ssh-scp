@@ -3,6 +3,7 @@ package com.etk2000.sealed.platform;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 
 import javax.swing.JFrame;
 
@@ -53,6 +54,24 @@ public abstract class Platform {
 		return instance;
 	}
 
+	/**
+	 * 
+	 * @param  array the array to apply replaces to
+	 * @param  args  the find and replace args as (find, replace)*
+	 * @return       array after modifications
+	 */
+	private static String[] replace(String[] array, String... args) {
+		if (args.length == 0 || args.length % 2 != 0)
+			throw new IllegalArgumentException("invalid number of find-replace args, got " + args.length);
+
+		for (int i = 0, j; i < args.length; i += 2) {
+			for (j = 0; j < array.length; ++j)
+				array[j] = array[j].replace(args[i], args[i + 1]);
+		}
+
+		return array;
+	}
+
 	public static void runSSH(Server srv, boolean newProcess) throws IOException {
 		instance.runSSHImpl(srv, newProcess);
 	}
@@ -66,12 +85,27 @@ public abstract class Platform {
 	}
 
 	protected final File dir, dirKeys, dirTmp;
-	protected String sshKey, sshPass;
+	protected String[] sshKey, sshPass;
 
 	protected Platform(String container) {
 		dir = new File(container, "sealed");
 		dirKeys = new File(dir, "keys");
 		dirTmp = new File(dir, "tmp");
+	}
+
+	protected String[] buildCommandSSH(Server srv, String[] prefix) {
+		String[] command;
+		final String remote = srv.user + '@' + srv.address();
+		if (srv.pass != null)
+			command = replace(Arrays.copyOf(sshPass, sshPass.length), "${pass}", srv.pass, "${remote}", remote);
+		else
+			command = replace(Arrays.copyOf(sshKey, sshKey.length), "${key}", srv.key.path(), "${remote}", remote);
+
+		// apply prefix if specified
+		if (prefix != null && prefix.length > 0) 
+			command = Util.copyAndMerge(prefix, command);
+		
+		return command;
 	}
 
 	protected synchronized LongBiConsumer newTransfer(JFrame frame) {
@@ -112,18 +146,11 @@ public abstract class Platform {
 		};
 	}
 
-	protected void runSSH(Server srv, String prefix, boolean newProcess) throws IOException {
-		final String remote = srv.user + '@' + srv.address();
-		String command;
-		if (srv.pass != null)
-			command = prefix + sshPass.replace("${pass}", srv.pass).replace("${remote}", remote);
-		else
-			command = prefix + sshKey.replace("${key}", '"' + srv.key.path() + '"').replace("${remote}", remote);
-		
+	protected void runSSH(Server srv, String[] prefix, boolean newProcess) throws IOException {
 		if (newProcess)
-			Util.run(command);
+			Util.run(buildCommandSSH(srv, prefix));
 		else
-			Util.runForResult(command, true);
+			Util.runForResult(true, buildCommandSSH(srv, prefix));
 	}
 
 	protected abstract boolean ensureToolsExistImpl();

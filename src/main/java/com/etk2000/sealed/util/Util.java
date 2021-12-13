@@ -5,22 +5,34 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.StringTokenizer;
 
 import javax.net.ssl.HttpsURLConnection;
 
 import com.etk2000.sealed.config.Config;
 
 public class Util {
+	@SuppressWarnings("unchecked")
+	public static <T> T[] copyAndMerge(T[] a, T[] b) {
+		if (a.length == 0 || b.length == 0)
+			throw new IllegalArgumentException("both arrays must have elements");
+		
+		T[] res = (T[]) Array.newInstance(a.getClass().getComponentType(), a.length + b.length);
+		System.arraycopy(a, 0, res, 0, a.length);
+		System.arraycopy(b, 0, res, a.length, b.length);
+		return res;
+	}
+	
 	public static void delete(File f) {
 		if (f.isFile())
 			f.delete();
@@ -65,25 +77,27 @@ public class Util {
 		return false;
 	}
 
-	public static void run(String command) throws IOException {
-		Runtime.getRuntime().exec(command);
+	@SafeVarargs
+	public static void run(String... command) throws IOException {
+		if (command.length == 0)
+			return;// TODO: err out
+		new ProcessBuilder(command).start();
 	}
 
-	public static String runForResult(String command, boolean inheritIO) {
+	@SafeVarargs
+	public static String runForResult(boolean inheritIO, String... command) {
+		if (command.length == 0)
+			return null;// TODO: err out
+		
 		try {
 			// if IO is to be inherited, set that up
 			if (inheritIO) {
-				StringTokenizer st = new StringTokenizer(command);
-				String[] cmdarray = new String[st.countTokens()];
-				for (int i = 0; st.hasMoreTokens(); i++)
-					cmdarray[i] = st.nextToken();
-
-				new ProcessBuilder(cmdarray).inheritIO().start().waitFor();
+				new ProcessBuilder(command).inheritIO().start().waitFor();
 				return null;
 			}
 			
 			// otherwise, run normally
-			Process p = Runtime.getRuntime().exec(command);
+			Process p = new ProcessBuilder(command).start();
 			p.waitFor();
 			try (Scanner s = new Scanner(p.getInputStream()).useDelimiter("\\Z")) {
 				return s.hasNext() ? s.next() : "";

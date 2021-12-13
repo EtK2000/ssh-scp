@@ -12,6 +12,9 @@ import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformWindows extends Platform {
+	private static final String[] NEW_PROCESS_PREFIX_CMD = { "cmd", "/c", "start" };
+	private static final String[] NEW_PROCESS_PREFIX_WT = { "wt", "nt" };
+
 	PlatformWindows() {
 		super(System.getenv("APPDATA"));
 	}
@@ -22,36 +25,40 @@ class PlatformWindows extends Platform {
 		// or fallback to PuTTY if neither exist
 		File openssh = new File(System.getenv("WINDIR") + "/System32/OpenSSH/ssh.exe");
 		if (openssh.exists())
-			sshKey = openssh.getAbsolutePath() + " -i ${key} ${remote}";
+			sshKey = new String[] { openssh.getAbsolutePath(), "-i", "${key}", "${remote}" };
 
 		// TODO: fetch paths from result of which?
 		System.err.println("TODO: fetch paths from result of which?");
 		File wslFile = new File(System.getenv("WINDIR") + "/System32/wsl.exe");
 		if (wslFile.exists()) {
-			final String wsl = '"' + wslFile.getAbsolutePath() + '"';
-			String sshpass = Util.runForResult(wsl + " which sshpass", false);
+			final String wsl = wslFile.getAbsolutePath();
+			String sshpass = Util.runForResult(false, wsl, "which", "sshpass");
 			if (sshpass.length() == 0) {
-				Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install sshpass", false);
-				sshpass = Util.runForResult(wsl + " which sshpass", false);
+				// TODO: let user know what's being installed
+				Util.runForResult(false, "cmd", "/c", "start", "/WAIT", wsl, "sudo", "apt-get", "install", "sshpass");
+				sshpass = Util.runForResult(false, wsl, "which", "sshpass");
 			}
 
 			// ensure sshpass was installed
-			if (sshpass.length() > 0)
-				sshPass = wsl + " sshpass -p ${pass} ssh ${remote}";
+			if (sshpass.length() > 0) {
+				// FIXME: fix ssh location
+				sshPass = new String[] { wsl, sshpass, "-p", "${pass}", "ssh", "${remote}" };
+			}
 
 			// if we don't have ssh, see if we have it via wsl
 			if (sshKey == null) {
-				String ssh = Util.runForResult(wsl + " which ssh", false);
+				String ssh = Util.runForResult(false, wsl, "which", "ssh");
 				if (ssh.length() == 0) {
-					Util.runForResult("cmd /c start /WAIT \"\" " + wsl + " sudo apt-get install ssh", false);
-					ssh = Util.runForResult(wsl + " which ssh", false);
+					// TODO: let user know what's being installed
+					Util.runForResult(false, "cmd", "/c", "start", "/WAIT", wsl, "echo", "sudo", "apt-get", "install", "ssh");
+					ssh = Util.runForResult(false, wsl, "which", "ssh");
 				}
 
 				// check if ssh was installed
 				if (ssh.length() > 0) {
-					// FIXME: fix key location
-					System.err.println("FIXME: fix key location");
-					sshKey = wsl + " ssh -i ${key} ${remote}";
+					// FIXME: fix key and ssh location
+					System.err.println("FIXME: fix key and ssh location");
+					sshKey = new String[] { wsl, "ssh", "-i", "${key}", "${remote}" };
 				}
 
 				// LOW: fallback to sshpass instead?
@@ -71,7 +78,7 @@ class PlatformWindows extends Platform {
 			return false;
 
 		if (sshPass == null)
-			sshPass = putty.getAbsolutePath() + " -pw ${pass} ${remote}";
+			sshPass = new String[] { putty.getAbsolutePath(), "-pw", "${pass}", "${remote}" };
 
 		return true;
 	}
@@ -80,11 +87,11 @@ class PlatformWindows extends Platform {
 	@Override
 	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
 		try {
-			runSSH(srv, newProcess ? "wt nt " : "", true);
+			runSSH(srv, newProcess ? NEW_PROCESS_PREFIX_WT : null, newProcess);
 		}
 		catch (IOException e) {
 			if (e.getMessage().contains("cannot find the file"))
-				runSSH(srv, newProcess ? "cmd /c start \"\" " : "", true);
+				runSSH(srv, newProcess ? NEW_PROCESS_PREFIX_CMD : null, newProcess);
 			else
 				throw e;
 		}
@@ -93,9 +100,9 @@ class PlatformWindows extends Platform {
 	@Override
 	protected void setupKeyPermsImpl(String path) {
 		// set 700 perms
-		Util.runForResult("icacls \"" + path + "\" /c /t /Inheritance:d", true);
-		Util.runForResult("icacls \"" + path + "\" /c /t /Grant " + System.getProperty("user.name") + ":F", true);
-		Util.runForResult("icacls \"" + path + "\" /c /t /Remove:g \"Authenticated Users\" BUILTIN\\Administrators BUILTIN Everyone System Users", true);
+		Util.runForResult(false, "icacls", path, "/c", "/t", "/Inheritance:d");
+		Util.runForResult(false, "icacls", path, "/c", "/t", "/Grant", System.getProperty("user.name") + ":F");
+		Util.runForResult(false, "icacls", path, "/c", "/t", "/Remove:g", "Authenticated Users", "BUILTIN\\Administrators", "BUILTIN", "Everyone", "System", "Users");
 	}
 
 	@Override
