@@ -45,6 +45,10 @@ class ThreadAccessStatus extends Thread {
 		running = false;
 	}
 
+	public void pollNow() {
+		interrupt();
+	}
+
 	synchronized void removeCallback(Consumer<AreaAccess> callback) {
 		callbacks.remove(callback);
 	}
@@ -58,8 +62,7 @@ class ThreadAccessStatus extends Thread {
 				Thread.sleep(60_000);
 			}
 			catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			}// pollNow was called
 
 			AreaAccess newState = getAccess();
 			if (newState != currentAccess)

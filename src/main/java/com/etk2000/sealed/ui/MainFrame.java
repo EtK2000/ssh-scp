@@ -43,27 +43,6 @@ import com.etk2000.sealed.service.exec.ServiceExec;
 
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
-	private static void connect(MainFrame owner, Server srv, boolean ssh) {
-		setEnabled(owner, false);// disable clicking until new window opens
-		new Thread(() -> {
-			try {
-				if (ssh)
-					Platform.runSSH(srv, true);
-				else
-					new ExplorerFrame(owner, srv).setVisible(true);
-			}
-			catch (IllegalStateException e) {
-				owner.logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());
-			}
-			catch (IOException e) {
-				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
-			}
-			finally {
-				setEnabled(owner, true);// restore clicking
-			}
-		}).start();
-	}
-
 	private static void setEnabled(Container container, boolean enabled) {
 		for (Component comp : container.getComponents()) {
 			if (comp instanceof ItemSelectable)
@@ -226,6 +205,28 @@ public class MainFrame extends JFrame {
 		}
 
 		add(north, BorderLayout.NORTH);
+	}
+
+	private void connect(MainFrame owner, Server srv, boolean ssh) {
+		setEnabled(owner, false);// disable clicking until new window opens
+		new Thread(() -> {
+			try {
+				if (ssh)
+					Platform.runSSH(srv, true);
+				else
+					new ExplorerFrame(owner, srv).setVisible(true);
+			}
+			catch (IllegalStateException e) {
+				owner.logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());
+			}
+			catch (IOException e) {
+				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
+			}
+			finally {// restore clicking
+				setEnabled(owner, true);
+				threadAccessCheck.pollNow();
+			}
+		}).start();
 	}
 
 	void run(ServiceExec exec, RelaunchTab tab, List<String> relaunchVars) {
