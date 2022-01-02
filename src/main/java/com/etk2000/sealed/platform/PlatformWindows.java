@@ -85,7 +85,7 @@ class PlatformWindows extends Platform {
 
 	// attempt to run in Windows Terminal, but fallback to cmd
 	@Override
-	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IllegalStateException, IOException {
 		try {
 			runSSH(srv, newProcess ? NEW_PROCESS_PREFIX_WT : null, newProcess);
 		}

@@ -72,7 +72,13 @@ public abstract class Platform {
 		return array;
 	}
 
-	public static void runSSH(Server srv, boolean newProcess) throws IOException {
+	/**
+	 * @param  srv                   the server for our attempted connection
+	 * @param  newProcess            whether or not to open a new window/process
+	 * @throws IllegalStateException if the server is inaccessible
+	 * @throws IOException           if the command fails
+	 */
+	public static void runSSH(Server srv, boolean newProcess) throws IllegalStateException, IOException {
 		instance.runSSHImpl(srv, newProcess);
 	}
 
@@ -93,18 +99,29 @@ public abstract class Platform {
 		dirTmp = new File(dir, "tmp");
 	}
 
-	protected String[] buildCommandSSH(Server srv, String[] prefix) {
+	/**
+	 * @param  srv                   the server for our attempted connection
+	 * @param  prefix                the prefix to prepend to the command
+	 * @return                       the command to execute
+	 * @throws IllegalStateException if the server is inaccessible
+	 */
+	protected String[] buildCommandSSH(Server srv, String[] prefix) throws IllegalStateException {
+		// FIXME: check $(srv.proxy()) and if it isn't null use it
+		String address = srv.address();
+		if (address == null)
+			throw new IllegalStateException("no valid IP found for server '" + srv.name + '\'');
+
 		String[] command;
-		final String remote = srv.user + '@' + srv.address();
+		final String remote = srv.user + '@' + address;
 		if (srv.pass != null)
 			command = replace(Arrays.copyOf(sshPass, sshPass.length), "${pass}", srv.pass, "${remote}", remote);
 		else
 			command = replace(Arrays.copyOf(sshKey, sshKey.length), "${key}", srv.key.path(), "${remote}", remote);
 
 		// apply prefix if specified
-		if (prefix != null && prefix.length > 0) 
+		if (prefix != null && prefix.length > 0)
 			command = Util.copyAndMerge(prefix, command);
-		
+
 		return command;
 	}
 
@@ -146,7 +163,7 @@ public abstract class Platform {
 		};
 	}
 
-	protected void runSSH(Server srv, String[] prefix, boolean newProcess) throws IOException {
+	protected void runSSH(Server srv, String[] prefix, boolean newProcess) throws IllegalStateException, IOException {
 		if (newProcess)
 			Util.run(buildCommandSSH(srv, prefix));
 		else
@@ -155,7 +172,7 @@ public abstract class Platform {
 
 	protected abstract boolean ensureToolsExistImpl();
 
-	protected abstract void runSSHImpl(Server srv, boolean newProcess) throws IOException;
+	protected abstract void runSSHImpl(Server srv, boolean newProcess) throws IllegalStateException, IOException;
 
 	protected abstract void setupKeyPermsImpl(String path);
 

@@ -52,7 +52,7 @@ public class MainFrame extends JFrame {
 				else
 					new ExplorerFrame(owner, srv).setVisible(true);
 			}
-			catch (IOException e) {
+			catch (IllegalStateException | IOException e) {
 				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
 			}
 			finally {

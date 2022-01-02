@@ -45,7 +45,7 @@ class PlatformLinux extends Platform {
 	}
 
 	@Override
-	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IllegalStateException, IOException {
 		runSSH(srv, newProcess ? NEW_PROCESS_PREFIX : null, newProcess);
 	}
 

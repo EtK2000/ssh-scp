@@ -86,6 +86,7 @@ public class Server {
 		jr.endObject();
 	}
 
+	// FIXME: also update when last update was X mins ago, update when connation fails
 	public String address() {
 		if (address == null) {
 			synchronized (LOCK_IP_UPDATE) {

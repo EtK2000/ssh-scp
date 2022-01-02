@@ -98,7 +98,8 @@ class PlatformMac extends PlatformLinux {
 	}
 
 	@Override
-	protected void runSSHImpl(Server srv, boolean newProcess) throws IOException {
+	protected void runSSHImpl(Server srv, boolean newProcess) throws IllegalStateException, IOException {
+		// on OSX, we need to send the command as a single argument
 		if (newProcess)
 			// FIXME: make this more efficient, i.e. don't generate new array here
 			Util.run(Util.copyAndMerge(NEW_PROCESS_PREFIX, new String[] { String.join(" ", buildCommandSSH(srv, null)) }));

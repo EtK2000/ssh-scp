@@ -18,7 +18,6 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeRegionsResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Region;
-import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Tag;
 import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
@@ -33,8 +32,7 @@ public class AWSLookupIP extends DynamicIP {
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		for (;;) {
 			DescribeInstancesResult response = ec2.describeInstances(request);
-			for (Reservation reservation : response.getReservations())
-				found.addAll(reservation.getInstances());
+			response.getReservations().forEach(r -> found.addAll(r.getInstances()));
 			if (response.getNextToken() == null)
 				break;
 

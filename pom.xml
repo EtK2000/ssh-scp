@@ -4,8 +4,15 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.etk2000</groupId>
 	<artifactId>sealed</artifactId>
-	<version>0.0.4</version>
+	<version>0.0.5-SNAPSHOT</version>
 	<name>ssh-scp</name>
+	<licenses>
+		<license>
+			<name>GPL-3.0</name>
+			<url>https://github.com/EtK2000/ssh-scp/blob/master/LICENSE</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 	<dependencyManagement>
 		<dependencies>
 			<!-- AWS dependencies -->
