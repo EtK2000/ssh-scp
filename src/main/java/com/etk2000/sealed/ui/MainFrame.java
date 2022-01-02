@@ -52,7 +52,10 @@ public class MainFrame extends JFrame {
 				else
 					new ExplorerFrame(owner, srv).setVisible(true);
 			}
-			catch (IllegalStateException | IOException e) {
+			catch (IllegalStateException e) {
+				owner.logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());
+			}
+			catch (IOException e) {
 				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
 			}
 			finally {
@@ -274,6 +277,16 @@ public class MainFrame extends JFrame {
 				center.setTabComponentAt(index, new RelaunchTab(this, title, exec, vars));
 			});
 		}).start();
+	}
+
+	private void logError(String title, String error) {
+		JTextArea err = new JTextArea();
+		err.setForeground(Color.RED);
+		err.setEditable(false);
+		err.setFont(UIManager.getFont("TextField.font"));
+
+		err.setText(error);
+		center.add(title, err);
 	}
 
 	private void logException(String title, Exception e) {
