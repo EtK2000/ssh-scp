@@ -1,18 +1,15 @@
 package com.etk2000.sealed.service.exec;
 
-import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.InputMismatchException;
 import java.util.List;
-import java.util.Scanner;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import com.etk2000.sealed.service.ServiceException;
-import com.etk2000.sealed.service.exec.ExecLog.LogColor;
 import com.etk2000.sealed.ui.MainFrame;
+import com.etk2000.sealed.util.HeadlessUtil;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
@@ -60,39 +57,11 @@ class OperationVarList extends Operation {
 		if (isRelaunch && vars.size() > var)
 			return;
 
-		int selection;
+		int selection = HeadlessUtil.showOptionDialog(parent, "Please select a value for '" + title + '\'', title, JOptionPane.CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+				options, null);
 
-		if (GraphicsEnvironment.isHeadless()) {
-			try (Scanner in = new Scanner(System.in)) {
-				for (;;) {
-					System.out.println(LogColor.BRIGHT_BLUE + "Please select a value for '" + title + '\'');
-					for (int i = 0; i < options.length; i++)
-						System.out.println(i + ") " + options[i]);
-					System.out.print(LogColor.RESET);
-
-					try {
-						int index = in.nextInt();
-						if (index >= 0 && index < options.length) {
-							selection = index;
-							break;
-						}
-						
-						System.err.println(LogColor.BRIGHT_RED + "index must be >= 0 and < " + options.length + LogColor.RESET);
-					}
-					catch (InputMismatchException e) {
-						System.err.println(LogColor.BRIGHT_RED + "expected a numeric index" + LogColor.RESET);
-						in.next();// restore to a valid state
-					}
-				}
-			}
-		}
-		else {
-			selection = JOptionPane.showOptionDialog(parent, "Please select a value for '" + title + '\'', title, JOptionPane.CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-					options, null);
-
-			if (selection == JOptionPane.CLOSED_OPTION)
-				throw new ServiceException("value for '" + title + "' not selected");
-		}
+		if (selection == JOptionPane.CLOSED_OPTION)
+			throw new ServiceException("value for '" + title + "' not selected");
 
 		setVar(var, options[selection], vars);
 

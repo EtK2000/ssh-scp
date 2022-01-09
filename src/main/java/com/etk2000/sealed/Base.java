@@ -16,6 +16,7 @@ import com.etk2000.sealed.platform.Platform;
 import com.etk2000.sealed.service.exec.ServiceExec;
 import com.etk2000.sealed.ui.MainFrame;
 import com.etk2000.sealed.ui.ProgressFrame;
+import com.etk2000.sealed.util.HeadlessUtil;
 
 public class Base {
 	private static boolean loadConfig(String file) throws IOException {
@@ -25,7 +26,7 @@ public class Base {
 				return true;
 			}
 			catch (IOException e) {
-				switch (JOptionPane.showConfirmDialog(null, "Error loading config, retry file?\n" + e.getClass().getName() + ": " + e.getMessage(), "Try Again?",
+				switch (HeadlessUtil.showConfirmDialog(null, "Error loading config, retry file?\n" + e.getClass().getName() + ": " + e.getMessage(), "Try Again?",
 						JOptionPane.YES_NO_CANCEL_OPTION)) {
 					case JOptionPane.NO_OPTION:
 						Config.delete();
@@ -50,7 +51,7 @@ public class Base {
 		String configFile = null, service = null, sshEndpoint = null;
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
-				
+
 				// if a config parameter was specified, load it
 				case "-c":
 				case "--config":
@@ -60,12 +61,12 @@ public class Base {
 					}
 					configFile = args[++i];
 					break;
-				
+
 				// if this process was summoned as a progress indicator, function as one
 				case "--progress":
 					new ProgressFrame().doUpdate();
 					return;
-					
+
 				// if a service was specified, execute it
 				case "-s":
 				case "--service":
@@ -75,7 +76,7 @@ public class Base {
 					}
 					service = args[++i];
 					break;
-					
+
 				// if an SSH endpoint was specified, connect to it
 				case "--ssh":
 					if (i + 1 >= args.length) {
@@ -93,7 +94,7 @@ public class Base {
 
 		if (!Platform.ensureToolsExist())
 			return;// FIXME: show error dialog
-		
+
 		// run service if specified
 		if (service != null) {
 			String toExec = service;
@@ -105,7 +106,7 @@ public class Base {
 			for (ServiceExec exec : execs)
 				exec.run(null, null, null);
 		}
-		
+
 		// SSH to endpoint if specified
 		else if (sshEndpoint != null) {
 			Server srv = Config.getServer(sshEndpoint);
@@ -113,14 +114,14 @@ public class Base {
 				System.err.println("no server found by name '" + sshEndpoint + '\'');
 				return;
 			}
-				
+
 			Platform.runSSH(srv, false);
 		}
 
 		// run in headless mode if no UI
 		else if (GraphicsEnvironment.isHeadless())
 			System.err.println("FIXME: implement some console based UI");// FIXME:
-		
+
 		// otherwise, run normally
 		else
 			new MainFrame().setVisible(true);
