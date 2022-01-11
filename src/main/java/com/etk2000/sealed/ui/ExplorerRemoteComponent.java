@@ -37,7 +37,7 @@ import com.etk2000.sealed.util.Util;
 @SuppressWarnings("serial")
 class ExplorerRemoteComponent extends JList<ExplorerObject> {
 	private static final Color DARK_CYAN = Color.CYAN.darker(), DARK_GREEN = Color.GREEN.darker(), DARK_YELLOW = Color.YELLOW.darker();
-
+	private static final String[] OPTIONS_YES_NO_CANCEL_YESALL = { "Yes", "No", "Cancel", "Yes To All" };
 	private boolean isDragSource;
 
 	ExplorerRemoteComponent(ExplorerConnection con, JTextField cd, LongBiConsumer updateProgress) {
@@ -84,8 +84,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 						onEnterItem(ExplorerObject.CD_UP, con, cd);
 						break;
 					case KeyEvent.VK_DELETE:
-						for (ExplorerObject obj : getSelectedValuesList())
-							onDeleteItem(obj, con);
+						onDeleteItems(getSelectedValuesList(), con);
 						break;
 					case KeyEvent.VK_ENTER:
 						// FIXME: if multiple directories selected open new windows for them
@@ -178,23 +177,49 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 		throw new IllegalAccessError("model cannot be modified");
 	}
 
-	private void onDeleteItem(ExplorerObject obj, ExplorerConnection con) {
-		if (obj == null)
-			return;
+	private void onDeleteItems(List<ExplorerObject> objs, ExplorerConnection con) {
+		boolean deleteAll = false;
 
-		// FIXME: add cancel option if deleting multiple files
-		if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(null,
-				"Are you sure you would like to delete " + obj.name + (obj.type == ObjectType.directory ? " and its contents?" : "?"), "Confirm delete",
-				JOptionPane.YES_NO_OPTION)) {
+		// don't allow the ".." i.e. parent folder to be accidentally deleted from here
+		objs.removeIf(obj -> obj.name.equals(".."));
 
-			List<ExplorerObject> selected = getSelectedValuesList();
-			if (!con.delete(obj, getModel()))
-				JOptionPane.showMessageDialog(null, "Failed to delete file");
+		for (ExplorerObject obj : objs) {
+			String text = "Are you sure you would like to delete " + obj.name + (obj.type == ObjectType.directory ? " and its contents?" : "?");
+			int option;
+
+			if (deleteAll)
+				option = JOptionPane.YES_OPTION;
 			else {
-				// select the remaining files
-				clearSelection();// JIC
-				int[] indencies = selected.stream().mapToInt(getModel()::indexOf).filter(i -> i >= 0).toArray();
-				setSelectedIndices(indencies);
+
+				// LOW: if 1 remaining object only show "Yes" and "No"
+				// if multiple, add "Cancel" and "Yes To All" options
+				if (objs.size() > 1) {
+					option = JOptionPane.showOptionDialog(this, text, "Confirm delete", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+							OPTIONS_YES_NO_CANCEL_YESALL, null);
+					if (option == JOptionPane.CANCEL_OPTION)
+						break;
+					if (option == 3)
+						deleteAll = true;
+				}
+
+				// otherwise, just "Yes" and "No"
+				else
+					option = JOptionPane.showConfirmDialog(this, text, "Confirm delete", JOptionPane.YES_NO_OPTION);
+			}
+
+			// delete file if requested then modify selection
+			if (deleteAll || option == JOptionPane.YES_OPTION) {
+
+				// LOW: might be calculatable using remaining objs
+				List<ExplorerObject> selected = getSelectedValuesList();
+				if (!con.delete(obj, getModel()))
+					JOptionPane.showMessageDialog(this, "Failed to delete " + obj.type + " '" + obj.name + '\'', "Error", JOptionPane.ERROR_MESSAGE);
+				else {
+					// select the remaining files
+					clearSelection();// JIC
+					int[] indencies = selected.stream().mapToInt(getModel()::indexOf).filter(i -> i >= 0).toArray();
+					setSelectedIndices(indencies);
+				}
 			}
 		}
 	}
