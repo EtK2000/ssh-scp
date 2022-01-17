@@ -13,6 +13,7 @@ import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,21 +40,11 @@ import com.etk2000.sealed.config.Config;
 import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.config.Server.AreaAccess;
 import com.etk2000.sealed.platform.Platform;
+import com.etk2000.sealed.service.ServiceCloud;
 import com.etk2000.sealed.service.exec.ServiceExec;
 
 @SuppressWarnings("serial")
 public class MainFrame extends JFrame {
-	private static void setEnabled(Container container, boolean enabled) {
-		for (Component comp : container.getComponents()) {
-			if (comp instanceof ItemSelectable)
-				comp.setEnabled(enabled);
-			else if (comp instanceof Container)
-				setEnabled((Container) comp, enabled);
-			else
-				comp.setEnabled(enabled);
-		}
-	}
-
 	private static final Border BORDER_NO_TABS = BorderFactory.createEmptyBorder(10, 10, 0, 10), BORDER_TABS = BorderFactory.createEmptyBorder(0, 10, 0, 10);
 
 	private final ThreadAccessStatus threadAccessCheck = new ThreadAccessStatus();
@@ -169,7 +160,7 @@ public class MainFrame extends JFrame {
 				currentPanel.setBorder(new TitledBorder(null, e.getKey(), TitledBorder.CENTER, TitledBorder.TOP));
 				for (Server srv : e.getValue()) {
 					JButton btn = new JButton(srv.name);
-					btn.addActionListener(x -> connect(this, srv, ssh.isSelected()));
+					btn.addActionListener(x -> connect(srv, ssh.isSelected()));
 					currentPanel.add(btn);
 
 					if (srv.access != AreaAccess.anywhere) {
@@ -184,8 +175,22 @@ public class MainFrame extends JFrame {
 				c.gridy++;
 			});
 
+			// add clouds
+			JPanel clouds = new JPanel(new FlowLayout());
+			clouds.setBorder(new TitledBorder(null, "Clouds", TitledBorder.CENTER, TitledBorder.TOP));
+			Config.clouds().sorted(Comparator.comparing(ServiceCloud::name)).forEach(cloud -> {
+				JButton btn = new JButton(cloud.name());
+				btn.addActionListener(x -> showCloud(cloud));
+				clouds.add(btn);
+			});
+			if (clouds.getComponentCount() > 0) {
+				north.add(clouds, c);
+				c.gridy++;
+			}
+
 			// add execs
 			JPanel execs = new JPanel(new FlowLayout());
+			execs.setBorder(new TitledBorder(null, "Execs", TitledBorder.CENTER, TitledBorder.TOP));
 			Config.execs().sorted((a, b) -> a.name.compareTo(b.name)).forEach(exec -> {
 				JButton btn = new JButton(exec.name);
 				btn.addActionListener(x -> run(exec, null, null));
@@ -200,33 +205,55 @@ public class MainFrame extends JFrame {
 				 */
 				execs.add(btn);
 			});
-			north.add(execs, c);
-			c.gridy++;
+			if (execs.getComponentCount() > 0) {
+				north.add(execs, c);
+				c.gridy++;
+			}
 		}
 
 		add(north, BorderLayout.NORTH);
 	}
 
-	private void connect(MainFrame owner, Server srv, boolean ssh) {
-		setEnabled(owner, false);// disable clicking until new window opens
+	private void connect(Server srv, boolean ssh) {
+		setEnabled(this, false, false);// disable clicking until new window opens
 		new Thread(() -> {
 			try {
 				if (ssh)
 					Platform.runSSH(srv, true);
 				else
-					new ExplorerFrame(owner, srv).setVisible(true);
+					new ExplorerFrame(this, srv).setVisible(true);
 			}
 			catch (IllegalStateException e) {
-				owner.logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());
+				logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());
 			}
 			catch (IOException e) {
-				owner.logException("Error in " + (ssh ? "SSH" : "SCP"), e);
+				logException("Error in " + (ssh ? "SSH" : "SCP"), e);
 			}
 			finally {// restore clicking
-				setEnabled(owner, true);
-				threadAccessCheck.pollNow();
+				setEnabled(this, true, true);
 			}
 		}).start();
+	}
+
+	private void logError(String title, String error) {
+		JTextArea err = new JTextArea();
+		err.setForeground(Color.RED);
+		err.setEditable(false);
+		err.setFont(UIManager.getFont("TextField.font"));
+
+		err.setText(error);
+		center.add(title, err);
+	}
+
+	private void logException(String title, Exception e) {
+		JTextArea err = new JTextArea();
+		err.setForeground(Color.RED);
+		err.setEditable(false);
+		err.setFont(UIManager.getFont("TextField.font"));
+
+		err.setText("Caught exception:\n" + e.getClass().getName() + ": " + e.getMessage());
+		e.printStackTrace();
+		center.add(title, err);
 	}
 
 	void run(ServiceExec exec, RelaunchTab tab, List<String> relaunchVars) {
@@ -280,25 +307,19 @@ public class MainFrame extends JFrame {
 		}).start();
 	}
 
-	private void logError(String title, String error) {
-		JTextArea err = new JTextArea();
-		err.setForeground(Color.RED);
-		err.setEditable(false);
-		err.setFont(UIManager.getFont("TextField.font"));
+	private void setEnabled(Container container, boolean enabled, boolean poll) {
+		for (Component comp : container.getComponents()) {
+			if (comp instanceof ItemSelectable)
+				comp.setEnabled(enabled);
+			else if (comp instanceof Container)
+				setEnabled((Container) comp, enabled, false);
+			else
+				comp.setEnabled(enabled);
+		}
 
-		err.setText(error);
-		center.add(title, err);
-	}
-
-	private void logException(String title, Exception e) {
-		JTextArea err = new JTextArea();
-		err.setForeground(Color.RED);
-		err.setEditable(false);
-		err.setFont(UIManager.getFont("TextField.font"));
-
-		err.setText("Caught exception:\n" + e.getClass().getName() + ": " + e.getMessage());
-		e.printStackTrace();
-		center.add(title, err);
+		//
+		if (poll)
+			threadAccessCheck.pollNow();
 	}
 
 	@Override
@@ -308,6 +329,18 @@ public class MainFrame extends JFrame {
 		else
 			threadAccessCheck.kill();
 		super.setVisible(b);
+	}
+
+	private void showCloud(ServiceCloud cloud) {
+		setEnabled(this, false, false);// disable clicking until new window opens
+		new Thread(() -> {
+			try {
+				new CloudFrame(this, cloud).setVisible(true);
+			}
+			finally {// restore clicking
+				setEnabled(this, true, true);
+			}
+		}).start();
 	}
 
 	private void toggleFocusedMode(JComponent c) {

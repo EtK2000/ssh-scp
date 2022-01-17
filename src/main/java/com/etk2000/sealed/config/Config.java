@@ -15,9 +15,10 @@ import java.util.stream.Stream;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import com.etk2000.sealed.dynamic_ip.DynamicIP;
 import com.etk2000.sealed.keys.KeySupplier;
 import com.etk2000.sealed.platform.Platform;
+import com.etk2000.sealed.service.ServiceCloud;
+import com.etk2000.sealed.service.ServiceDynamicIP;
 import com.etk2000.sealed.service.ServiceJenkins;
 import com.etk2000.sealed.service.exec.ServiceExec;
 import com.etk2000.sealed.util.Util;
@@ -29,7 +30,8 @@ public class Config {
 	private static final String[] EMPTY_LSTR = {};
 	private static final File FILE = new File(Platform.dir(), "config.json");
 
-	private static final List<DynamicIP> dynamicIPs = new ArrayList<>();
+	private static final List<ServiceCloud> clouds = new ArrayList<>();
+	private static final List<ServiceDynamicIP> dynamicIPs = new ArrayList<>();
 	private static final List<ServiceExec> execs = new ArrayList<>();
 	private static final List<Server> servers = new ArrayList<>();
 	private static KeySupplier keySupplier;
@@ -116,12 +118,22 @@ public class Config {
 									while (jr.hasNext()) {
 										String name = jr.nextName();
 										switch (name) {
+											case "cloud": {
+												clouds.clear();
+												jr.beginObject();
+												{
+													while (jr.hasNext())
+														clouds.add(ServiceCloud.read(jr.nextName(), jr));
+												}
+												jr.endObject();
+												break;
+											}
 											case "dynamic_ip": {
 												dynamicIPs.clear();
 												jr.beginObject();
 												{
 													while (jr.hasNext())
-														dynamicIPs.add(DynamicIP.read(jr.nextName(), jr));
+														dynamicIPs.add(ServiceDynamicIP.read(jr.nextName(), jr));
 												}
 												jr.endObject();
 												break;
@@ -161,6 +173,10 @@ public class Config {
 		}
 	}
 
+	public static synchronized Stream<ServiceCloud> clouds() {
+		return clouds.stream();
+	}
+
 	public static synchronized Stream<ServiceExec> execs() {
 		return execs.stream();
 	}
@@ -194,9 +210,9 @@ public class Config {
 		
 		List<Tuple<Server, String>> newIPs = Collections.synchronizedList(new ArrayList<>());
 		List<Thread> ts = new ArrayList<>(dynamicIPs.size());
-		for (DynamicIP dynamicIP : dynamicIPs) {
+		for (ServiceDynamicIP dynamicIP : dynamicIPs) {
 			// FIXME: figure out how to deal with conflicts
-			Thread t = new Thread(() -> newIPs.addAll(dynamicIP.fetch()));
+			Thread t = new Thread(() -> newIPs.addAll(dynamicIP.fetchIPs()));
 			t.start();
 			ts.add(t);
 		}

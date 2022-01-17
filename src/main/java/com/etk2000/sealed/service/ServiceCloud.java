@@ -1,15 +1,16 @@
-package com.etk2000.sealed.dynamic_ip;
+package com.etk2000.sealed.service;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.etk2000.sealed.config.Server;
-import com.google.cloud.Tuple;
+import com.etk2000.sealed.cloudprovider.AWSCloudProvider;
+import com.etk2000.sealed.cloudprovider.CloudServer;
+import com.etk2000.sealed.cloudprovider.GoogleCloudProvider;
 import com.google.gson.stream.JsonReader;
 
-public abstract class DynamicIP {
-	public static DynamicIP read(String type, JsonReader jr) throws IOException {
-		DynamicIP res;
+public interface ServiceCloud {
+	public static ServiceCloud read(String type, JsonReader jr) throws IOException {
+		ServiceCloud res;
 		jr.beginObject();
 		{
 			switch (type) {
@@ -27,9 +28,9 @@ public abstract class DynamicIP {
 						}
 					}
 					if (id == null)
-						throw new IOException("missing field(s) for DynamicIP of type 'aws'");
+						throw new IOException("missing field(s) for Cloud of type 'aws'");
 					
-					res = new AWSLookupIP(id);
+					res = AWSCloudProvider.getFor(id);
 					break;
 				}
 				case "google": {
@@ -49,13 +50,13 @@ public abstract class DynamicIP {
 						}
 					}
 					if (id == null || projectID == null)
-						throw new IOException("missing field(s) for DynamicIP of type 'google'");
+						throw new IOException("missing field(s) for Cloud of type 'google'");
 					
-					res = new GoogleCloudLookupIP(id, projectID);
+					res = GoogleCloudProvider.getFor(id, projectID);
 					break;
 				}
 				default:
-					throw new IOException("invalid DynamicIP type, got '" + type + '\'');
+					throw new IOException("invalid Cloud type, got '" + type + '\'');
 
 			}
 		}
@@ -63,5 +64,7 @@ public abstract class DynamicIP {
 		return res;
 	}
 	
-	public abstract List<Tuple<Server, String>> fetch();
+	List<CloudServer> fetchServers();
+	
+	String name();
 }

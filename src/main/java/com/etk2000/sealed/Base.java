@@ -51,6 +51,8 @@ public class Base {
 		String configFile = null, service = null, sshEndpoint = null;
 		for (int i = 0; i < args.length; i++) {
 			switch (args[i]) {
+				
+				// FIXME: add an argument to force running in headless mode
 
 				// if a config parameter was specified, load it
 				case "-c":

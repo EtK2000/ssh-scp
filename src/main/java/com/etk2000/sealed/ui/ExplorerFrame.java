@@ -1,7 +1,6 @@
 package com.etk2000.sealed.ui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -22,7 +21,6 @@ class ExplorerFrame extends JFrame {
 	private final ExplorerConnection con;
 
 	ExplorerFrame(MainFrame parent, Server srv) throws IOException {
-		setBackground(Color.BLACK);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLayout(new BorderLayout());
 		setSize(800, 600);
