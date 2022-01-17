@@ -20,7 +20,7 @@ public class HeadlessUtil {
 
 	public static int showConfirmDialog(Component parentComponent, Object message, String title, int optionType) {
 		if (!GraphicsEnvironment.isHeadless())
-			JOptionPane.showConfirmDialog(parentComponent, message, title, optionType);
+			return JOptionPane.showConfirmDialog(parentComponent, message, title, optionType);
 
 		for (;;) {
 			String choice;
@@ -72,7 +72,7 @@ public class HeadlessUtil {
 
 	public static int showOptionDialog(Component parentComponent, Object message, String title, int optionType, int messageType, Icon icon, Object[] options, Object initialValue) {
 		if (!GraphicsEnvironment.isHeadless())
-			JOptionPane.showOptionDialog(parentComponent, message, title, optionType, messageType, icon, options, initialValue);
+			return JOptionPane.showOptionDialog(parentComponent, message, title, optionType, messageType, icon, options, initialValue);
 
 		for (;;) {
 			System.out.println(LogColor.BRIGHT_BLUE + "Please select a value for '" + title + '\'');
