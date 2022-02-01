@@ -12,12 +12,25 @@ import com.etk2000.sealed.util.Util;
 import com.google.cloud.Tuple;
 
 class PlatformMac extends PlatformLinux {
-	private static final String OSASCRIPT = "#!/usr/bin/osascript\n" + //
-			"on run argv\n" + //
-			" tell application \"iTerm2\"\n" + //
-			"  set newWindow to (create window with default profile command argv)\n" + //
-			" end tell\n" + //
-			"end run";
+	private static final String BREW = "/opt/homebrew/bin/brew";
+	private static final String SSHPASS = "/opt/homebrew/bin/sshpass";
+	private static final String OSASCRIPT = //
+			"#!/usr/bin/osascript\n" + //
+					"on run argv\n" + //
+					"	tell application \"Terminal\"\n" + //
+					"		set t to do script\n" + //
+					"		set w to first window of (every window whose tabs contains t)\n" + //
+					"		activate w\n" + //
+					"		do script argv in t\n" + //
+					"		repeat\n" + //
+					"			delay 0.05\n" + //
+					"			if not busy of t then exit repeat\n" + //
+					"		end repeat\n" + //
+					"		repeat with i from 1 to the count of w's tabs\n" + //
+					"			if item i of w's tabs is t then close w\n" + //
+					"		end repeat\n" + //
+					"	end tell\n" + //
+					"end run";
 
 	private final String[] NEW_PROCESS_PREFIX;
 	private final File script;
@@ -57,16 +70,15 @@ class PlatformMac extends PlatformLinux {
 			return false;
 		}
 
-		String sshpass = Util.runForResult(false, "which", "sshpass");
-		if (sshpass.length() == 0) {
+		File sshpassFile = new File(SSHPASS);
+		if (!sshpassFile.exists()) {
 			// FIXME: maybe allow running without?
 			System.err.println("FIXME: maybe allow running without?");
-			Util.runForResult(true, "brew", "install", "hudochenkov/sshpass/sshpass");
-			sshpass = Util.runForResult(false, "which", "sshpass");
+			Util.runForResult(true, BREW, "install", "hudochenkov/sshpass/sshpass");
 		}
 
 		// ensure sshpass was installed
-		if (sshpass.length() > 0) {
+		if (sshpassFile.exists()) {
 
 			// create osascript file and keep it locked for tamper proofing
 			script.getParentFile().mkdirs();
@@ -86,7 +98,7 @@ class PlatformMac extends PlatformLinux {
 
 				// setup the commands to execute usinf the script
 				sshKey = new String[] { ssh, "-i", "${key}", "${remote}" };
-				sshPass = new String[] { sshpass, "-p", "${pass}", ssh, "${remote}" };
+				sshPass = new String[] { SSHPASS, "-p", "${pass}", ssh, "${remote}" };
 			}
 			catch (IOException e) {
 				e.printStackTrace();
