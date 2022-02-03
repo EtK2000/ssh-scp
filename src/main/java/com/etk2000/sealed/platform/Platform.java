@@ -128,6 +128,9 @@ public abstract class Platform {
 		
 		// apply proxy if specified
 		if (proxy != null) {
+			if (proxy.proxy() != null) // FIXME: SCP via proxy isn't support yet :(
+				throw new IllegalStateException("proxy nesting not supported");
+			
 			String[] proxyCommand = buildCommandSSH(proxy, prefix);
 			String[] res = Arrays.copyOf(proxyCommand, proxyCommand.length + 2);
 			res[proxyCommand.length] = "-t";
