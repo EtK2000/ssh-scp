@@ -14,6 +14,8 @@ import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 public abstract class Platform {
+	private static final String[] SSH_KEY = new String[] { "ssh", "-i", "${key}", "${remote}" };
+	private static final String[] SSH_PASS = new String[] { "sshpass", "-p", "${pass}", "ssh", "${remote}" };
 	private static final Platform instance;
 	private static int nextTransfererId;
 	private static Process progress;
@@ -111,15 +113,30 @@ public abstract class Platform {
 		if (address == null)
 			throw new IllegalStateException("no valid IP found for server '" + srv.name + '\'');
 
+		Server proxy = srv.proxy();
+		
 		String[] command;
 		final String remote = srv.user + '@' + address;
-		if (srv.pass != null)
-			command = replace(Arrays.copyOf(sshPass, sshPass.length), "${pass}", srv.pass, "${remote}", remote);
-		else
-			command = replace(Arrays.copyOf(sshKey, sshKey.length), "${key}", srv.key.path(), "${remote}", remote);
-
-		// apply prefix if specified
-		if (prefix != null && prefix.length > 0)
+		if (srv.pass != null) {
+			String[] base = proxy == null ? instance.sshPass : SSH_PASS;
+			command = replace(Arrays.copyOf(base, base.length), "${pass}", srv.pass, "${remote}", remote);
+		}
+		else {
+			String[] base = proxy == null ? instance.sshKey : SSH_KEY;
+			command = replace(Arrays.copyOf(base, base.length), "${key}", srv.key.path(), "${remote}", remote);
+		}
+		
+		// apply proxy if specified
+		if (proxy != null) {
+			String[] proxyCommand = buildCommandSSH(proxy, prefix);
+			String[] res = Arrays.copyOf(proxyCommand, proxyCommand.length + 2);
+			res[proxyCommand.length] = "-t";
+			res[proxyCommand.length + 1] = '"' + String.join("\" \"", command) + '"';
+			command = res;
+		}
+		
+		// apply prefix if specified, will be applied to proxy instead if existent
+		else if (prefix != null && prefix.length > 0)
 			command = Util.copyAndMerge(prefix, command);
 
 		return command;

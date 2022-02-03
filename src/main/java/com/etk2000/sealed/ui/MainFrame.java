@@ -220,8 +220,10 @@ public class MainFrame extends JFrame {
 			try {
 				if (ssh)
 					Platform.runSSH(srv, true);
-				else
+				else if (srv.proxy() == null)
 					new ExplorerFrame(this, srv).setVisible(true);
+				else// FIXME: SCP via proxy isn't support yet :(
+					logError("Error in SCP", "SCP via proxy isn't support yet :(");
 			}
 			catch (IllegalStateException e) {
 				logError("Error in " + (ssh ? "SSH" : "SCP"), e.getMessage());

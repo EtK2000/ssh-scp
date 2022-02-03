@@ -13,15 +13,17 @@ public class Server {
 	}
 
 	String address;
+	private final String proxy;
 	public final String category;
 	public final String fingerprint, name, user, pass;
 	public final AuthKey key;
 	public final AreaAccess access;
 
-	Server(String name, String category, AreaAccess access, String address, String user, AuthKey key, String fingerprint) {
+	Server(String name, String category, AreaAccess access, String proxy, String address, String user, AuthKey key, String fingerprint) {
 		this.name = name;
 		this.category = category;
 		this.access = access;
+		this.proxy = proxy;
 		this.address = address;
 		this.user = user;
 		this.key = key;
@@ -29,10 +31,11 @@ public class Server {
 		pass = null;
 	}
 
-	Server(String name, String category, AreaAccess access, String address, String user, String pass, String fingerprint) {
+	Server(String name, String category, AreaAccess access, String proxy, String address, String user, String pass, String fingerprint) {
 		this.name = name;
 		this.category = category;
 		this.access = access;
+		this.proxy = proxy;
 		this.address = address;
 		this.user = user;
 		this.pass = pass;
@@ -45,7 +48,7 @@ public class Server {
 		jr.beginObject();
 		{
 			AreaAccess _access = AreaAccess.anywhere;
-			String _category = null, _fingerprint = null, _key = null, _pass = null, _user = null;
+			String _category = null, _fingerprint = null, _key = null, _pass = null, _proxy = null, _user = null;
 
 			while (jr.hasNext()) {
 				switch (jr.nextName()) {
@@ -67,6 +70,9 @@ public class Server {
 					case "pass":
 						_pass = jr.nextString();
 						break;
+					case "proxy":
+						_proxy = jr.nextString();
+						break;
 					case "user":
 						_user = jr.nextString();
 						break;
@@ -80,6 +86,7 @@ public class Server {
 			category = _category;
 			fingerprint = _fingerprint;
 			key = _key != null ? new AuthKey(_key) : null;
+			proxy = _proxy;
 			pass = _pass;
 			user = _user;
 		}
@@ -95,5 +102,9 @@ public class Server {
 			}
 		}
 		return address;
+	}
+	
+	public Server proxy() {
+		return Config.getServer(proxy);// LOW: cache?
 	}
 }
