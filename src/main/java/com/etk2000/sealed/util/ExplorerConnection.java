@@ -8,7 +8,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.DefaultListModel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.ui.ExplorerObject;
@@ -21,6 +23,7 @@ import net.schmizz.sshj.xfer.scp.SCPFileTransfer;
 
 public class ExplorerConnection extends CommandConnection {
 	private static final Pattern GET_FILENAME = Pattern.compile("((\\\\\\s)*[^\\s]*)+$"), GET_LINKNAME = Pattern.compile("((\\\\\\s)*[^\\s]*)+(?=\\s->)");
+	private static final int TIMEOUT_OP = 10_000;
 
 	private static String humanReadable(String path) {
 		return path.replace("\\", "");
@@ -41,7 +44,7 @@ public class ExplorerConnection extends CommandConnection {
 		super(srv);
 
 		try {
-			home = exec("echo $HOME").stdout.trim();
+			home = exec("echo $HOME", TIMEOUT_OP).stdout.trim();
 		}
 		catch (IOException e) {
 			client.close();
@@ -61,7 +64,7 @@ public class ExplorerConnection extends CommandConnection {
 
 		String dir = unixReadable(newDir);
 		try {
-			ExecResult result = exec("ls -a -b -g " + dir + " && realpath " + dir + "/.");
+			ExecResult result = exec("ls -a -b -g " + dir + " && realpath " + dir + "/.", TIMEOUT_OP);
 
 			String[] res = result.stderr.length() == 0 ? result.stdout.split("\n") : null;
 			if (res != null) {
@@ -84,8 +87,9 @@ public class ExplorerConnection extends CommandConnection {
 			else
 				cdOut.setText(cd());
 		}
-		catch (IOException e) {
-			e.printStackTrace();
+		catch (IllegalStateException | IOException e) {
+			HeadlessUtil.showMessageDialog(SwingUtilities.getWindowAncestor(cdOut), e.getClass().getName() + ":\n" + e.getMessage(), "Error executing CD",
+					JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
@@ -93,6 +97,7 @@ public class ExplorerConnection extends CommandConnection {
 		cd(cd() + '/' + subdir, uiModel, cdOut);
 	}
 
+	// FIXME: get this to work on OSX (tested) and Linux (untested)
 	public void download(String filename, File dst, LongBiConsumer progressCallback) throws IOException {
 		SCPFileTransfer transfer = client.newSCPFileTransfer();
 		transfer.setTransferListener(new TransferListener() {
@@ -112,7 +117,7 @@ public class ExplorerConnection extends CommandConnection {
 
 	public boolean delete(ExplorerObject obj, DefaultListModel<ExplorerObject> uiModel) {
 		try {
-			ExecResult result = exec("rm " + (obj.type == ObjectType.directory ? "-r " : "") + cd + '/' + unixReadable(obj.name) + " && ls -a -b -g " + cd);
+			ExecResult result = exec("rm " + (obj.type == ObjectType.directory ? "-r " : "") + cd + '/' + unixReadable(obj.name) + " && ls -a -b -g " + cd, TIMEOUT_OP);
 
 			if (result.stderr.length() == 0) {
 				String[] res = result.stderr.length() == 0 ? result.stdout.split("\n") : null;
@@ -194,7 +199,7 @@ public class ExplorerConnection extends CommandConnection {
 				command.append("ls -b -d -g ").append(link.y()).append(" && ");
 			command.setLength(command.length() - 4);
 			try {
-				ExecResult result = exec(command.toString());
+				ExecResult result = exec(command.toString(), TIMEOUT_OP);
 
 				// TODO: attempt to find a workaround
 				if (result.stderr.length() > 0)
@@ -214,32 +219,38 @@ public class ExplorerConnection extends CommandConnection {
 		objects.forEach(uiModel::addElement);
 	}
 
-	public void upload(File file, LongBiConsumer progressCallback, DefaultListModel<ExplorerObject> uiModel) throws IOException {
-		SCPFileTransfer transfer = client.newSCPFileTransfer();
-		transfer.setTransferListener(new TransferListener() {
-			@Override
-			public Listener file(String name, long size) {
-				return transferred -> progressCallback.accept(transferred, size);
+	public void upload(List<File> files, ScpTransferListener listener, DefaultListModel<ExplorerObject> uiModel) throws IOException {
+		new Thread(() -> {
+			// FIXME: calculate total size based off all files
+			
+			SCPFileTransfer transfer = client.newSCPFileTransfer();
+			transfer.setTransferListener(new TransferListener() {
+				@Override
+				public Listener file(String name, long size) {
+					return transferred -> listener.onProgress(transferred, size);
+				}
+
+				@Override
+				public TransferListener directory(String name) {
+					return this;
+				}
+			});
+
+			try {
+				for (File file : files)
+					transfer.upload(file.getAbsolutePath(), cd.charAt(0) == '~' ? home + cd().substring(1) : cd());
+
+				// update directory contents
+				ExecResult result = exec("ls -a -b -g " + cd, TIMEOUT_OP);
+				String[] res = result.stderr.length() == 0 ? result.stdout.split("\n") : null;
+				if (res != null)// 2 to skip count and "."
+					parseLS(uiModel, res, 2, res.length);
 			}
-
-			@Override
-			public TransferListener directory(String name) {
-				return this;
+			catch (IOException e) {
+				listener.onException(e);
 			}
-		});
-		transfer.upload(file.getAbsolutePath(), cd.charAt(0) == '~' ? home + cd().substring(1) : cd());
-		progressCallback.accept(-1, -1);
-
-		// update directory contents
-		try {
-			ExecResult result = exec("ls -a -b -g " + cd);
-
-			String[] res = result.stderr.length() == 0 ? result.stdout.split("\n") : null;
-			if (res != null)// 2 to skip count and "."
-				parseLS(uiModel, res, 2, res.length);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
+			listener.onProgress(-1, -1);
+			listener.onComplete();
+		}).start();
 	}
 }

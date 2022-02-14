@@ -19,6 +19,8 @@ import com.etk2000.sealed.util.CommandConnection.ExecResult;
 import com.google.gson.stream.JsonReader;
 
 public class OperationExec extends Operation {
+	private static final int TIMEOUT_EXEC = 30_000;
+	
 	private final List<String> execs = new ArrayList<>();
 	private final String name;
 
@@ -53,7 +55,7 @@ public class OperationExec extends Operation {
 				if (!noEcho)
 					log.append(COMMAND, command + '\n');
 
-				ExecResult res = con.exec(command);
+				ExecResult res = con.exec(command, TIMEOUT_EXEC);
 				log.appendANSI(res.stdout.replaceFirst("\\s++$", ""), STDOUT);
 				if (res.stderr.length() > 0)
 					log.appendANSI('\n' + res.stderr.replaceFirst("\\s++$", ""), STDERR);

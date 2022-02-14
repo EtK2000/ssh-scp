@@ -26,21 +26,50 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListModel;
+import javax.swing.SwingUtilities;
 
 import com.etk2000.sealed.platform.Platform;
 import com.etk2000.sealed.ui.ExplorerObject.ObjectType;
 import com.etk2000.sealed.util.ExplorerConnection;
 import com.etk2000.sealed.util.FileTransferable;
+import com.etk2000.sealed.util.HeadlessUtil;
 import com.etk2000.sealed.util.LongBiConsumer;
+import com.etk2000.sealed.util.ScpTransferListener;
 import com.etk2000.sealed.util.Util;
 
 @SuppressWarnings("serial")
 class ExplorerRemoteComponent extends JList<ExplorerObject> {
+	private class TransferListener implements ScpTransferListener {
+		private final Runnable onComplete;
+		private final LongBiConsumer updateProgress;
+
+		TransferListener(LongBiConsumer updateProgress, Runnable onComplete) {
+			this.onComplete = onComplete;
+			this.updateProgress = updateProgress;
+		}
+
+		@Override
+		public void onComplete() {
+			onComplete.run();
+		}
+
+		@Override
+		public void onException(IOException e) {
+			HeadlessUtil.showMessageDialog(SwingUtilities.getWindowAncestor(ExplorerRemoteComponent.this), e.getClass().getName() + ":\n" + e.getMessage(), "Error in operation", JOptionPane.ERROR_MESSAGE);
+		}
+
+		@Override
+		public void onProgress(long transferred, long totalSize) {
+			updateProgress.accept(transferred, totalSize);
+		}
+
+	}
+
 	private static final Color DARK_CYAN = Color.CYAN.darker(), DARK_GREEN = Color.GREEN.darker(), DARK_YELLOW = Color.YELLOW.darker();
 	private static final String[] OPTIONS_YES_NO_CANCEL_YESALL = { "Yes", "No", "Cancel", "Yes To All" };
 	private boolean isDragSource;
 
-	ExplorerRemoteComponent(ExplorerConnection con, JTextField cd, LongBiConsumer updateProgress) {
+	ExplorerRemoteComponent(ExplorerConnection con, JTextField cd, LongBiConsumer onDownloadProgress, LongBiConsumer onUploadProgress) {
 		super(new DefaultListModel<>());
 		setCellRenderer(new ListCellRenderer<ExplorerObject>() {
 			private final JFileChooser dummy = new JFileChooser();
@@ -127,14 +156,13 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 				try {
 					dtde.acceptDrop(DnDConstants.ACTION_COPY);
 					List<File> files = (List<File>) dtde.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-					for (File file : files)
-						con.upload(file, updateProgress, getModel());
-					// LOW: doesn't need to freeze UI, can actually show progress
 
-					// select the newly uploaded files
-					clearSelection();// JIC
-					int[] indencies = files.stream().mapToInt(f -> getModel().indexOf(ExplorerObject.find(f.getName()))).filter(i -> i >= 0).toArray();
-					setSelectedIndices(indencies);
+					con.upload(files, new TransferListener(onUploadProgress, () -> {
+						// select the newly uploaded files
+						clearSelection();// JIC
+						int[] indencies = files.stream().mapToInt(f -> getModel().indexOf(ExplorerObject.find(f.getName()))).filter(i -> i >= 0).toArray();
+						setSelectedIndices(indencies);
+					}), getModel());
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -151,7 +179,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 			dndSrc.startDrag(dge, DragSource.DefaultCopyDrop, new FileTransferable(getSelectedValuesList(), (filename, file) -> {
 				if (!file.exists()) {
 					try {
-						con.download(filename, file, updateProgress);
+						con.download(filename, file, onDownloadProgress);
 					}
 					catch (IOException e) {
 						e.printStackTrace();
@@ -192,6 +220,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 			else {
 
 				// LOW: if 1 remaining object only show "Yes" and "No"
+				
 				// if multiple, add "Cancel" and "Yes To All" options
 				if (objs.size() > 1) {
 					option = JOptionPane.showOptionDialog(this, text, "Confirm delete", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,

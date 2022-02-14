@@ -56,7 +56,13 @@ public class CommandConnection implements Closeable {
 		}
 	}
 
-	final public synchronized ExecResult exec(String command) throws IOException {
+	final public synchronized ExecResult exec(String command, int timeout) throws IllegalStateException, IOException {
+		int prevTO = 0;
+		if (timeout > 0) {
+			prevTO = client.getConnection().getTimeoutMs();
+			client.getConnection().setTimeoutMs(timeout);
+		}
+		
 		try (Command cmd = client.startSession().exec(command)) {
 			ByteArrayOutputStream stdout = new ByteArrayOutputStream(cmd.getLocalMaxPacketSize());
 			cmd.getInputStream().transferTo(stdout);
@@ -64,6 +70,10 @@ public class CommandConnection implements Closeable {
 			cmd.getErrorStream().transferTo(stderr);
 
 			return new ExecResult(stdout.toString(UTF_8.name()), stderr.toString(UTF_8.name()));
+		}
+		finally {
+			if (timeout > 0)
+				client.getConnection().setTimeoutMs(prevTO);
 		}
 	}
 

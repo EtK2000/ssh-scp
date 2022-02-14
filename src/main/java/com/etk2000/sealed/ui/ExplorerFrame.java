@@ -9,6 +9,7 @@ import java.io.IOException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
@@ -35,10 +36,33 @@ class ExplorerFrame extends JFrame {
 			}
 		});
 
+		DisabledGlassPane glassPane = new DisabledGlassPane();
+		setGlassPane(glassPane);
+		JProgressBar bar = new JProgressBar();
+
 		JTextField cd = new JTextField();
 
 		// setup the region to contain all objects in our cd
-		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, cd, Platform.updateProgress(this));
+		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, cd, Platform.updateProgress(this), (transferred, totalSize) -> {
+			if (transferred == totalSize && totalSize == -1)
+				glassPane.unShow();
+
+			else {
+				glassPane.show(bar);// LOW: only call show(bar) if needed?
+
+				// update value
+				if (transferred == totalSize)
+					bar.setIndeterminate(true);
+				else {
+					int _current = (int) (totalSize > Integer.MAX_VALUE ? ((double) Integer.MAX_VALUE / totalSize) * transferred : transferred);
+					int _full = (int) Math.min(Integer.MAX_VALUE, totalSize);
+					
+					bar.setIndeterminate(false);
+					bar.setMaximum(_full);
+					bar.setValue(_current);
+				}
+			}
+		});
 
 		JScrollPane remoteScroll = new JScrollPane(remote);
 		remoteScroll.setBorder(BorderFactory.createTitledBorder("Remote"));

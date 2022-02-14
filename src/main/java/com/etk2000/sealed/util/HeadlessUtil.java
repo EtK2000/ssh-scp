@@ -18,13 +18,13 @@ public class HeadlessUtil {
 			in = new Scanner(System.in);
 	}
 
-	public static int showConfirmDialog(Component parentComponent, Object message, String title, int optionType) {
+	public static int showConfirmDialog(Component parentComponent, String message, String title, int optionType) {
 		if (!GraphicsEnvironment.isHeadless())
 			return JOptionPane.showConfirmDialog(parentComponent, message, title, optionType);
 
 		for (;;) {
 			String choice;
-			System.out.println(LogColor.BRIGHT_BLUE.ansi + message);
+			System.out.println(LogColor.BRIGHT_BLUE + message);
 			switch (optionType) {
 
 				// 0/y 1/n
@@ -70,7 +70,16 @@ public class HeadlessUtil {
 		}
 	}
 
-	public static int showOptionDialog(Component parentComponent, Object message, String title, int optionType, int messageType, Icon icon, Object[] options, Object initialValue) {
+	public static void showMessageDialog(Component parentComponent, String message, String title, int messageType) {
+		if (!GraphicsEnvironment.isHeadless()) {
+			JOptionPane.showMessageDialog(parentComponent, message, title, messageType);
+			return;
+		}
+
+		(messageType == JOptionPane.ERROR_MESSAGE ? System.err : System.out).println(message);
+	}
+
+	public static int showOptionDialog(Component parentComponent, String message, String title, int optionType, int messageType, Icon icon, Object[] options, Object initialValue) {
 		if (!GraphicsEnvironment.isHeadless())
 			return JOptionPane.showOptionDialog(parentComponent, message, title, optionType, messageType, icon, options, initialValue);
 
@@ -84,7 +93,7 @@ public class HeadlessUtil {
 				int index = Integer.parseInt(in.next());// safer than in.nextInt()
 				if (index >= 0 && index < options.length)
 					return index;
-				
+
 				System.err.println(LogColor.BRIGHT_RED + "index must be >= 0 and < " + options.length + LogColor.RESET);
 			}
 			catch (NumberFormatException e) {
