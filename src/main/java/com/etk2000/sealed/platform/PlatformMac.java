@@ -12,8 +12,9 @@ import com.etk2000.sealed.util.Util;
 import com.google.cloud.Tuple;
 
 class PlatformMac extends PlatformLinux {
-	private static final String BREW = "/opt/homebrew/bin/brew";
-	private static final String SSHPASS = "/opt/homebrew/bin/sshpass";
+	private static final String[] HOMEBREW_PREFIX = { "/opt/homebrew/bin/", "/usr/local/bin/" };
+	private static final String HOMEBREW = "brew";
+	private static final String SSHPASS = "sshpass";
 	private static final String OSASCRIPT = //
 			"#!/usr/bin/osascript\n" + //
 					"on run argv\n" + //
@@ -69,12 +70,23 @@ class PlatformMac extends PlatformLinux {
 			System.err.println("no ssh");// FIXME: look into a workaround or something
 			return false;
 		}
+		
+		// ensure homebrew is installed
+		String brewPrefix = null;
+		for (String prefix : HOMEBREW_PREFIX) {
+			if (new File(prefix + HOMEBREW).exists()) {
+				brewPrefix = prefix;
+				break;
+			}
+		}
+		if (brewPrefix == null)
+			return false;
 
-		File sshpassFile = new File(SSHPASS);
+		File sshpassFile = new File(brewPrefix + SSHPASS);
 		if (!sshpassFile.exists()) {
 			// FIXME: maybe allow running without?
 			System.err.println("FIXME: maybe allow running without?");
-			Util.runForResult(true, BREW, "install", "hudochenkov/sshpass/sshpass");
+			Util.runForResult(true, brewPrefix + HOMEBREW, "install", "hudochenkov/sshpass/sshpass");
 		}
 
 		// ensure sshpass was installed
@@ -98,7 +110,7 @@ class PlatformMac extends PlatformLinux {
 
 				// setup the commands to execute usinf the script
 				sshKey = new String[] { ssh, "-i", "${key}", "${remote}" };
-				sshPass = new String[] { SSHPASS, "-p", "${pass}", ssh, "${remote}" };
+				sshPass = new String[] { brewPrefix + SSHPASS, "-p", "${pass}", ssh, "${remote}" };
 			}
 			catch (IOException e) {
 				e.printStackTrace();
