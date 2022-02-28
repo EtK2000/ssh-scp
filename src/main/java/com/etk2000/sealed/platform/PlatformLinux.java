@@ -5,10 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
 
-import javax.swing.JFrame;
-
 import com.etk2000.sealed.config.Server;
-import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformLinux extends Platform {
@@ -58,10 +55,5 @@ class PlatformLinux extends Platform {
 		catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	@Override
-	protected LongBiConsumer updateProgressImpl(JFrame frame) {
-		return newTransfer(frame);
 	}
 }

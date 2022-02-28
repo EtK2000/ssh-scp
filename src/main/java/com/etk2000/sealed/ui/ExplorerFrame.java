@@ -5,7 +5,9 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
@@ -13,12 +15,59 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
+import com.etk2000.sealed.Base;
 import com.etk2000.sealed.config.Server;
-import com.etk2000.sealed.platform.Platform;
 import com.etk2000.sealed.util.ExplorerConnection;
+import com.etk2000.sealed.util.LongBiConsumer;
 
 @SuppressWarnings("serial")
 class ExplorerFrame extends JFrame {
+	private static final Object LOCK = new Object();
+	private static int nextTransfererId;
+	private static Process progress;
+
+	private static LongBiConsumer newTransfer(JFrame frame) {
+		synchronized (LOCK) {
+			int transfererId = nextTransfererId++;
+
+			// spawn a new thread/process to handle a progress window
+			return (current, full) -> {
+				Util.calculateTaskbarProgress(frame, current, full);
+				
+				synchronized (LOCK) {
+					if (progress == null) {
+						try {
+							File thisJar = new File(Base.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+
+							// if running as a jar, just sub-process it
+							if (thisJar.isFile())
+								progress = Runtime.getRuntime().exec("java -jar \"" + thisJar.getPath() + "\" --progress");
+
+							// otherwise, we gotta setup the classpath and run ourself...
+							// LOW: setup classpath by loading pom.xml and concatenating with
+							// (System.getProperty("user.home") + "/.m2")
+							else
+								progress = Runtime.getRuntime().exec("java -cp \"" + thisJar.getPath() + "\" " + Base.class.getName() + " --progress");
+
+							Runtime.getRuntime().addShutdownHook(new Thread(progress::destroyForcibly));
+						}
+						catch (IOException | URISyntaxException e) {
+							e.printStackTrace();
+						}
+					}
+
+					// write the update to our child process, LOW: respawn process if dead?
+					try {
+						ProgressFrame.writeTo(progress, transfererId, current, full);
+					}
+					catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		}
+	}
+
 	private final ExplorerConnection con;
 
 	ExplorerFrame(MainFrame parent, Server srv) throws IOException {
@@ -43,7 +92,9 @@ class ExplorerFrame extends JFrame {
 		JTextField cd = new JTextField();
 
 		// setup the region to contain all objects in our cd
-		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, cd, Platform.updateProgress(this), (transferred, totalSize) -> {
+		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, cd, newTransfer(this), (transferred, totalSize) -> {
+			Util.calculateTaskbarProgress(this, transferred, totalSize);
+
 			if (transferred == totalSize && totalSize == -1)
 				glassPane.unShow();
 

@@ -49,6 +49,7 @@ public class ProgressFrame extends JDialog {
 	}
 
 	private void updateOrAddProgress(int transfererId, long current, long full) {
+		Util.calculateTaskbarProgress(this, current, full);
 		JProgressBar bar = progress.get(transfererId);
 
 		// if done, either remove progress bar or do nothing

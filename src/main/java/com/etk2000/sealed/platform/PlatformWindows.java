@@ -1,14 +1,9 @@
 package com.etk2000.sealed.platform;
 
-import java.awt.Taskbar;
-import java.awt.Taskbar.State;
 import java.io.File;
 import java.io.IOException;
 
-import javax.swing.JFrame;
-
 import com.etk2000.sealed.config.Server;
-import com.etk2000.sealed.util.LongBiConsumer;
 import com.etk2000.sealed.util.Util;
 
 class PlatformWindows extends Platform {
@@ -103,20 +98,5 @@ class PlatformWindows extends Platform {
 		Util.runForResult(false, "icacls", path, "/c", "/t", "/Inheritance:d");
 		Util.runForResult(false, "icacls", path, "/c", "/t", "/Grant", System.getProperty("user.name") + ":F");
 		Util.runForResult(false, "icacls", path, "/c", "/t", "/Remove:g", "Authenticated Users", "BUILTIN\\Administrators", "BUILTIN", "Everyone", "System", "Users");
-	}
-
-	@Override
-	protected LongBiConsumer updateProgressImpl(JFrame frame) {
-		LongBiConsumer ui = newTransfer(frame);
-		Taskbar taskbar = Taskbar.getTaskbar();
-		return (current, full) -> {
-			ui.accept(current, full);
-			if (current == full)
-				taskbar.setWindowProgressState(frame, full == -1 ? State.OFF : State.INDETERMINATE);
-			else {
-				taskbar.setWindowProgressState(frame, State.NORMAL);
-				taskbar.setWindowProgressValue(frame, (int) ((double) current / full * 100));
-			}
-		};
 	}
 }
