@@ -81,6 +81,9 @@ public class Server {
 						break;
 				}
 			}
+			
+			if ((_key == null && _pass == null) || (_key != null && _pass != null))
+				throw new IllegalArgumentException("one of \"key\" or \"pass\" should be specified in server \"" + name + '"');
 
 			access = _access;
 			category = _category;

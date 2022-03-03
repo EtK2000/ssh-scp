@@ -25,7 +25,7 @@ public class Base {
 				Config.load(file);
 				return true;
 			}
-			catch (IOException e) {
+			catch (IllegalArgumentException | IOException e) {
 				switch (HeadlessUtil.showConfirmDialog(null, "Error loading config, retry file?\n" + e.getClass().getName() + ": " + e.getMessage(), "Try Again?",
 						JOptionPane.YES_NO_CANCEL_OPTION)) {
 					case JOptionPane.NO_OPTION:
