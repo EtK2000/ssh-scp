@@ -41,6 +41,7 @@ public class Base {
 	}
 
 	public static void main(String[] args) throws IOException {
+		System.setProperty("apple.awt.application.name", "SSH and SCP Utility");
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		}

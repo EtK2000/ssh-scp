@@ -56,7 +56,7 @@ public class MainFrame extends JFrame {
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLayout(new BorderLayout());
 		setSize(800, 600);
-		setTitle("sealed.ai - helper utility");
+		setTitle(System.getProperty("apple.awt.application.name"));
 		setLocationRelativeTo(null);
 
 		// setup the options in the south area of the window
