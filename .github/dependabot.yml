@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    assignees:
+      - "EtK2000"
+    commit-message:
+      prefix: "Maven"
+      include: "scope"
+    directory: "/"
+    reviewers:
+      - "EtK2000"
+    schedule:
+      interval: "daily"
