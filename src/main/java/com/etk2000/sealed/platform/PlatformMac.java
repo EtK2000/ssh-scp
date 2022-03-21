@@ -7,7 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
 
+import javax.swing.JOptionPane;
+
 import com.etk2000.sealed.config.Server;
+import com.etk2000.sealed.util.HeadlessUtil;
 import com.etk2000.sealed.util.Util;
 import com.google.cloud.Tuple;
 
@@ -100,7 +103,7 @@ class PlatformMac extends PlatformLinux {
 				FileLock _lock = fos.getChannel().tryLock();
 				if (_lock == null) {
 					fos.close();
-					System.err.println("failed to lock " + script.getAbsolutePath());
+					HeadlessUtil.showMessageDialog(null, "Failed to lock " + script.getAbsolutePath(), "Error!", JOptionPane.ERROR_MESSAGE);
 					return false;
 				}
 				lock = Tuple.of(fos, _lock);

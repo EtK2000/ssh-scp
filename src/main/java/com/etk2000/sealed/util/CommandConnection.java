@@ -21,9 +21,32 @@ public class CommandConnection implements Closeable {
 		}
 	}
 
-	protected final SSHClient client;
+	private final Server srv;
+	private SSHClient client;
 
 	public CommandConnection(Server srv) throws IOException {
+		this.srv = srv;
+		connect();
+	}
+	
+	protected SSHClient client() {
+		return client;
+	}
+
+	@Override
+	final public void close() {
+		try {
+			client.close();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	protected void connect() throws IOException {
+		if (client != null)
+			close();
+		
 		client = new SSHClient();
 
 		if (!srv.fingerprint.isEmpty())
@@ -43,16 +66,6 @@ public class CommandConnection implements Closeable {
 		catch (IOException e) {
 			client.close();
 			throw e;
-		}
-	}
-
-	@Override
-	final public void close() {
-		try {
-			client.close();
-		}
-		catch (IOException e) {
-			e.printStackTrace();
 		}
 	}
 

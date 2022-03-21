@@ -18,7 +18,10 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import javax.swing.JOptionPane;
+
 import com.etk2000.sealed.platform.Platform;
+import com.etk2000.sealed.util.HeadlessUtil;
 import com.etk2000.sealed.util.Util;
 import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
 import com.google.api.client.auth.oauth2.BearerToken;
@@ -80,7 +83,7 @@ class KeySupplierGithub extends KeySupplier {
 			if (Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
 				Desktop.getDesktop().browse(new URI(url));
 			else
-				System.out.println("please navigate your browser to: " + url);// FIXME: open popup
+				HeadlessUtil.showMessageDialog(null, "please navigate your browser to: " + url, "Attention Required", JOptionPane.INFORMATION_MESSAGE);
 
 			while (true) {
 				try (Socket client = srv.accept()) {

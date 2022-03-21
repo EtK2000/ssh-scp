@@ -6,7 +6,7 @@
 	</properties>
 	<groupId>com.etk2000</groupId>
 	<artifactId>ssh-scp</artifactId>
-	<version>0.0.6</version>
+	<version>0.0.7-SNAPSHOT</version>
 	<name>ssh-scp</name>
 	<licenses>
 		<license>

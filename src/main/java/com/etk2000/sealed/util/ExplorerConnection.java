@@ -1,5 +1,6 @@
 package com.etk2000.sealed.util;
 
+import java.awt.Window;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,7 +48,7 @@ public class ExplorerConnection extends CommandConnection {
 			home = exec("echo $HOME", TIMEOUT_OP).stdout.trim();
 		}
 		catch (IOException e) {
-			client.close();
+			close();
 			throw e;
 		}
 	}
@@ -64,7 +65,7 @@ public class ExplorerConnection extends CommandConnection {
 
 		String dir = unixReadable(newDir);
 		try {
-			ExecResult result = exec("ls -a -b -g " + dir + " && realpath " + dir + "/.", TIMEOUT_OP);
+			ExecResult result = exec("ls -abg " + dir + " && realpath " + dir + "/.", TIMEOUT_OP);
 
 			String[] res = result.stderr.length() == 0 ? result.stdout.split("\n") : null;
 			if (res != null) {
@@ -88,8 +89,23 @@ public class ExplorerConnection extends CommandConnection {
 				cdOut.setText(cd());
 		}
 		catch (IllegalStateException | IOException e) {
-			HeadlessUtil.showMessageDialog(SwingUtilities.getWindowAncestor(cdOut), e.getClass().getName() + ":\n" + e.getMessage(), "Error executing CD",
-					JOptionPane.ERROR_MESSAGE);
+			Window parent = SwingUtilities.getWindowAncestor(cdOut);
+			if (e.getClass() == IllegalStateException.class && e.getMessage().equals("Not connected")) {
+				if (JOptionPane.YES_OPTION == HeadlessUtil.showConfirmDialog(parent, "Connection has been lost.\nAttempt to reconnect?", "Connection Lost",
+						JOptionPane.YES_NO_OPTION)) {
+					try {
+						connect();
+						cd(newDir, uiModel, cdOut);// LOW: give up eventually?
+					}
+					catch (IOException ex) {
+						HeadlessUtil.showMessageDialog(parent, ex.getClass().getName() + ":\n" + ex.getMessage(), "Failed To Reconnect", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+
+			else {
+				HeadlessUtil.showMessageDialog(parent, e.getClass().getName() + ":\n" + e.getMessage(), "Error Executing CD", JOptionPane.ERROR_MESSAGE);
+			}
 		}
 	}
 
@@ -99,7 +115,7 @@ public class ExplorerConnection extends CommandConnection {
 
 	// FIXME: get this to work on OSX (tested) and Linux (untested)
 	public void download(String filename, File dst, LongBiConsumer progressCallback) throws IOException {
-		SCPFileTransfer transfer = client.newSCPFileTransfer();
+		SCPFileTransfer transfer = client().newSCPFileTransfer();
 		transfer.setTransferListener(new TransferListener() {
 			@Override
 			public Listener file(String name, long size) {
@@ -166,12 +182,12 @@ public class ExplorerConnection extends CommandConnection {
 					return new ExplorerObject(ObjectType.link, dst);
 				}
 				default:
-					System.out.println(line);
+					System.err.println(line);
 					return new ExplorerObject(ObjectType.other, "UNKNOWN: " + humanReadable(m.group()));
 			}
 		}
 
-		System.out.println(line);
+		System.err.println(line);
 		return null;
 	}
 
@@ -196,7 +212,7 @@ public class ExplorerConnection extends CommandConnection {
 		if (linkLookup.size() > 0) {
 			StringBuilder command = new StringBuilder();
 			for (Tuple<ExplorerObject, String> link : linkLookup)
-				command.append("ls -b -d -g ").append(link.y()).append(" && ");
+				command.append("ls -bdg ").append(link.y()).append(" && ");
 			command.setLength(command.length() - 4);
 			try {
 				ExecResult result = exec(command.toString(), TIMEOUT_OP);
@@ -222,8 +238,8 @@ public class ExplorerConnection extends CommandConnection {
 	public void upload(List<File> files, ScpTransferListener listener, DefaultListModel<ExplorerObject> uiModel) throws IOException {
 		new Thread(() -> {
 			// FIXME: calculate total size based off all files
-			
-			SCPFileTransfer transfer = client.newSCPFileTransfer();
+
+			SCPFileTransfer transfer = client().newSCPFileTransfer();
 			transfer.setTransferListener(new TransferListener() {
 				@Override
 				public Listener file(String name, long size) {
