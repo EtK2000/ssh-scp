@@ -10,4 +10,4 @@ updates:
     reviewers:
       - "EtK2000"
     schedule:
-      interval: "daily"
+      interval: "monthly"
