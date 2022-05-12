@@ -8,18 +8,29 @@ import com.etk2000.sealed.config.Server;
 import com.etk2000.sealed.util.Util;
 
 public abstract class Platform {
+	public static enum PlatformType {
+		LINUX, MAC, WINDOWS// FIXME: look into Solaris (Indiana?) and FreeBSD
+	}
+
 	private static final String[] SSH_KEY = new String[] { "ssh", "-i", "${key}", "${remote}" };
 	private static final String[] SSH_PASS = new String[] { "sshpass", "-p", "${pass}", "ssh", "${remote}" };
 	private static final Platform instance;
+	public static final PlatformType TYPE;
 
 	static {
 		String os = System.getProperty("os.name").toLowerCase();
-		if (os.contains("win"))
+		if (os.contains("win")) {
 			instance = new PlatformWindows();
-		else if (os.contains("mac"))
+			TYPE = PlatformType.WINDOWS;
+		}
+		else if (os.contains("mac")) {
 			instance = new PlatformMac();
-		else
+			TYPE = PlatformType.MAC;
+		}
+		else {
 			instance = new PlatformLinux();
+			TYPE = PlatformType.LINUX;
+		}
 	}
 
 	public static File dir() {
@@ -102,7 +113,7 @@ public abstract class Platform {
 			throw new IllegalStateException("no valid IP found for server '" + srv.name + '\'');
 
 		Server proxy = srv.proxy();
-		
+
 		String[] command;
 		final String remote = srv.user + '@' + address;
 		if (srv.pass != null) {
@@ -113,19 +124,19 @@ public abstract class Platform {
 			String[] base = proxy == null ? instance.sshKey : SSH_KEY;
 			command = replace(Arrays.copyOf(base, base.length), "${key}", srv.key.path(), "${remote}", remote);
 		}
-		
+
 		// apply proxy if specified
 		if (proxy != null) {
 			if (proxy.proxy() != null) // FIXME: SCP via proxy isn't support yet :(
 				throw new IllegalStateException("proxy nesting not supported");
-			
+
 			String[] proxyCommand = buildCommandSSH(proxy, prefix);
 			String[] res = Arrays.copyOf(proxyCommand, proxyCommand.length + 2);
 			res[proxyCommand.length] = "-t";
 			res[proxyCommand.length + 1] = '"' + String.join("\" \"", command) + '"';
 			command = res;
 		}
-		
+
 		// apply prefix if specified, will be applied to proxy instead if existent
 		else if (prefix != null && prefix.length > 0)
 			command = Util.copyAndMerge(prefix, command);

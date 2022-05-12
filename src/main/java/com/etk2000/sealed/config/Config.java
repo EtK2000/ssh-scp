@@ -20,6 +20,7 @@ import com.etk2000.sealed.platform.Platform;
 import com.etk2000.sealed.service.ServiceCloud;
 import com.etk2000.sealed.service.ServiceDynamicIP;
 import com.etk2000.sealed.service.ServiceJenkins;
+import com.etk2000.sealed.service.ServiceVPN;
 import com.etk2000.sealed.service.exec.ServiceExec;
 import com.etk2000.sealed.util.Util;
 import com.google.cloud.Tuple;
@@ -34,6 +35,7 @@ public class Config {
 	private static final List<ServiceDynamicIP> dynamicIPs = new ArrayList<>();
 	private static final List<ServiceExec> execs = new ArrayList<>();
 	private static final List<Server> servers = new ArrayList<>();
+	private static final List<ServiceVPN> vpns = new ArrayList<>();
 	private static KeySupplier keySupplier;
 	private static String[] officeIPs = EMPTY_LSTR;
 
@@ -71,9 +73,11 @@ public class Config {
 			}
 
 			// wipe previous config
+			clouds.clear();
 			dynamicIPs.clear();
 			execs.clear();
 			servers.clear();
+			vpns.clear();
 			keySupplier = null;
 			officeIPs = EMPTY_LSTR;
 
@@ -152,6 +156,15 @@ public class Config {
 												// System.out.println("^ JENKINS TEST ^");
 												break;
 											}
+											case "vpn":
+												vpns.clear();
+												jr.beginObject();
+												{
+													while (jr.hasNext())
+														vpns.addAll(ServiceVPN.read(jr.nextName(), jr));
+												}
+												jr.endObject();
+												break;
 											default:
 												System.err.println("no service by name '" + name + '\'');
 												jr.skipValue();
