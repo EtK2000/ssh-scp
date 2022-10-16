@@ -8,7 +8,7 @@
 	</properties>
 	<groupId>com.etk2000</groupId>
 	<artifactId>ssh-scp</artifactId>
-	<version>0.0.7</version>
+	<version>0.0.8-SNAPSHOT</version>
 	<name>ssh-scp</name>
 	<licenses>
 		<license>
