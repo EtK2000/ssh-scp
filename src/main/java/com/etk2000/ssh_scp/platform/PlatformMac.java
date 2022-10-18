@@ -1,53 +1,41 @@
 package com.etk2000.ssh_scp.platform;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileLock;
 import java.util.Scanner;
 
-import javax.swing.JOptionPane;
-
 import com.etk2000.ssh_scp.util.AbstractServer;
-import com.etk2000.ssh_scp.util.HeadlessUtil;
 import com.etk2000.ssh_scp.util.Util;
-import com.google.cloud.Tuple;
 
 class PlatformMac extends PlatformLinux {
 	private static final String[] HOMEBREW_PREFIX = { "/opt/homebrew/bin/", "/usr/local/bin/" };
 	private static final String HOMEBREW = "brew";
 	private static final String SSHPASS = "sshpass";
+	private static final File iTerm = new File("/Applications/iTerm.app");
 
-	private final String[] NEW_PROCESS_PREFIX;
-	private final File script;
-	private Tuple<FileOutputStream, FileLock> lock;
+	private final String osascript, launchITerm, launchTerminal;
 
 	PlatformMac() {
-		script = new File(dir, "launch.applescript");
-
-		String osascript = Util.runForResult(false, "which", "osascript");
+		osascript = Util.runForResult(false, "which", "osascript");
 		if (osascript.length() == 0)// FIXME: deal with this state
 			throw new IllegalStateException("osascript is required");
 
-		NEW_PROCESS_PREFIX = new String[] { osascript, script.getAbsolutePath() };
-	}
+		try {
+			try (Scanner s = new Scanner(Util.getResource("/launch_iTerm.applescript").openStream()).useDelimiter("\\Z")) {
+				if (!s.hasNext())
+					throw new IOException();
+				launchITerm = s.next();
+			}
 
-	private void cleanup() {
-		try {
-			lock.y().release();
+			try (Scanner s = new Scanner(Util.getResource("/launch_Terminal.applescript").openStream()).useDelimiter("\\Z")) {
+				if (!s.hasNext())
+					throw new IOException();
+				launchTerminal = s.next();
+			}
 		}
 		catch (IOException e) {
-			e.printStackTrace();
+			throw new IllegalStateException("jar appears corrupted");
 		}
-		try {
-			lock.x().close();
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		lock = null;
 	}
 
 	@Override
@@ -79,34 +67,10 @@ class PlatformMac extends PlatformLinux {
 		// ensure sshpass was installed
 		if (sshpassFile.exists()) {
 
-			// create osascript file and keep it locked for tamper proofing
-			script.getParentFile().mkdirs();
-			try {
-				@SuppressWarnings("resource")
-				FileOutputStream fos = new FileOutputStream(script);
-				FileLock _lock = fos.getChannel().tryLock();
-				if (_lock == null) {
-					fos.close();
-					HeadlessUtil.showMessageDialog(null, "Failed to lock " + script.getAbsolutePath(), "Error!", JOptionPane.ERROR_MESSAGE);
-					return false;
-				}
-				lock = Tuple.of(fos, _lock);
+			// setup the commands to execute using the script
+			sshKey = new String[] { ssh, "-i", "${key}", "${remote}" };
+			sshPass = new String[] { brewPrefix + SSHPASS, "-p", "${pass}", ssh, "${remote}" };
 
-				try (Scanner s = new Scanner(Util.getResource("/launch.applescript").openStream()).useDelimiter("\\Z")) {
-					fos.write(s.next().getBytes(UTF_8));
-					// LOW: if !s.hasNext() show error message of tampered JAR?
-				}
-
-				Runtime.getRuntime().addShutdownHook(new Thread(this::cleanup));
-
-				// setup the commands to execute using the script
-				sshKey = new String[] { ssh, "-i", "${key}", "${remote}" };
-				sshPass = new String[] { brewPrefix + SSHPASS, "-p", "${pass}", ssh, "${remote}" };
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
 			return true;
 		}
 		return false;
@@ -116,8 +80,8 @@ class PlatformMac extends PlatformLinux {
 	protected void runSSHImpl(AbstractServer srv, boolean newProcess) throws IllegalStateException, IOException {
 		// on OSX, we need to send the command as a single argument
 		if (newProcess)
-			// FIXME: make this more efficient, i.e. don't generate new array here
-			Util.run(Util.copyAndMerge(NEW_PROCESS_PREFIX, new String[] { String.join(" ", buildCommandSSH(srv, null)) }));
+			// FIXME: escape quotes, slashes, and anything else that can be problematic
+			Util.run(osascript, "-e", (iTerm.isDirectory() ? launchITerm : launchTerminal).replace("${command}", String.join(" ", buildCommandSSH(srv, null))));
 		else
 			runSSH(srv, null, newProcess);
 	}
