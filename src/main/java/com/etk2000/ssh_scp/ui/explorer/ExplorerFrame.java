@@ -1,8 +1,6 @@
-package com.etk2000.ssh_scp.ui;
+package com.etk2000.ssh_scp.ui.explorer;
 
 import java.awt.BorderLayout;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -13,15 +11,17 @@ import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 
 import com.etk2000.ssh_scp.Base;
+import com.etk2000.ssh_scp.ui.DisabledGlassPane;
+import com.etk2000.ssh_scp.ui.ProgressFrame;
+import com.etk2000.ssh_scp.ui.TaskbarUtil;
 import com.etk2000.ssh_scp.util.AbstractServer;
 import com.etk2000.ssh_scp.util.ExplorerConnection;
 import com.etk2000.ssh_scp.util.LongBiConsumer;
 
 @SuppressWarnings("serial")
-class ExplorerFrame extends JFrame {
+public class ExplorerFrame extends JFrame {
 	private static final Object LOCK = new Object();
 	private static int nextTransfererId;
 	private static Process progress;
@@ -70,7 +70,7 @@ class ExplorerFrame extends JFrame {
 
 	private final ExplorerConnection con;
 
-	ExplorerFrame(JFrame parent, AbstractServer srv) throws IOException {
+	public ExplorerFrame(JFrame parent, AbstractServer srv) throws IOException {
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setLayout(new BorderLayout());
 		setSize(800, 600);
@@ -85,14 +85,13 @@ class ExplorerFrame extends JFrame {
 			}
 		});
 
-		DisabledGlassPane glassPane = new DisabledGlassPane();
-		setGlassPane(glassPane);
 		JProgressBar bar = new JProgressBar();
 
-		JTextField cd = new JTextField();
+		DisabledGlassPane glassPane = new DisabledGlassPane();
+		setGlassPane(glassPane);
 
 		// setup the region to contain all objects in our cd
-		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, cd, newTransfer(this), (transferred, totalSize) -> {
+		ExplorerRemoteComponent remote = new ExplorerRemoteComponent(con, newTransfer(this), (transferred, totalSize) -> {
 			TaskbarUtil.calculateTaskbarProgress(this, transferred, totalSize);
 
 			if (transferred == totalSize && totalSize == -1)
@@ -119,18 +118,11 @@ class ExplorerFrame extends JFrame {
 		remoteScroll.setBorder(BorderFactory.createTitledBorder("Remote"));
 		add(remoteScroll, BorderLayout.CENTER);
 
-		cd.addKeyListener(new KeyAdapter() {
-			@Override
-			public void keyTyped(KeyEvent e) {
-				if (e.getKeyChar() == '\n') {
-					// if the directory exists cd to it
-					con.cd(cd.getText(), remote.getModel(), cd);
-				}
-			}
-		});
-		add(cd, BorderLayout.SOUTH);
+		ExplorerSouthPanel southPane = new ExplorerSouthPanel(this, con, remote);
+		add(southPane, BorderLayout.SOUTH);
 
 		// populate file list
-		con.cd(con.cd(), remote.getModel(), cd);
+		remote.setCdDisplay(southPane.cd);
+		con.cd(con.cd(), remote.getModel(), southPane.cd);
 	}
 }

@@ -10,11 +10,11 @@ import java.util.regex.Pattern;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
-import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.text.JTextComponent;
 
-import com.etk2000.ssh_scp.ui.ExplorerObject;
-import com.etk2000.ssh_scp.ui.ExplorerObject.ObjectType;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerObject;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerObject.ObjectType;
 import com.google.cloud.Tuple;
 
 import net.schmizz.sshj.common.StreamCopier.Listener;
@@ -56,9 +56,10 @@ public class ExplorerConnection extends CommandConnection {
 		return humanReadable(cd);
 	}
 
-	public void cd(String newDir, DefaultListModel<ExplorerObject> uiModel, JTextField cdOut) {
+	public void cd(String newDir, DefaultListModel<ExplorerObject> uiModel, JTextComponent cdOut) {
 		if (newDir.length() == 0) {
-			cdOut.setText(cd());
+			if (cdOut != null)
+				cdOut.setText(cd());
 			return;
 		}
 
@@ -78,17 +79,18 @@ public class ExplorerConnection extends CommandConnection {
 				else {
 					// update cd
 					cd = newCd.startsWith(home) ? '~' + newCd.substring(home.length()) : newCd;
-					cdOut.setText(cd());
+					if (cdOut != null)
+						cdOut.setText(cd());
 
 					// 2 to skip count and ".", -1 to skip cd
 					parseLS(uiModel, res, 2, res.length - 1);
 				}
 			}
-			else
+			else if (cdOut != null)
 				cdOut.setText(cd());
 		}
 		catch (IllegalStateException | IOException e) {
-			Window parent = SwingUtilities.getWindowAncestor(cdOut);
+			Window parent = cdOut != null ? SwingUtilities.getWindowAncestor(cdOut) : null;
 			if (e.getClass() == IllegalStateException.class && e.getMessage().equals("Not connected")) {
 				if (JOptionPane.YES_OPTION == HeadlessUtil.showConfirmDialog(parent, "Connection has been lost.\nAttempt to reconnect?", "Connection Lost",
 						JOptionPane.YES_NO_OPTION)) {
@@ -108,7 +110,7 @@ public class ExplorerConnection extends CommandConnection {
 		}
 	}
 
-	public void cdSubdir(String subdir, DefaultListModel<ExplorerObject> uiModel, JTextField cdOut) {
+	public void cdSubdir(String subdir, DefaultListModel<ExplorerObject> uiModel, JTextComponent cdOut) {
 		cd(cd() + '/' + subdir, uiModel, cdOut);
 	}
 

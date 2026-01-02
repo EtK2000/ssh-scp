@@ -48,8 +48,10 @@ import com.etk2000.ssh_scp.config.Server;
 import com.etk2000.ssh_scp.config.Server.AreaAccess;
 import com.etk2000.ssh_scp.platform.Platform;
 import com.etk2000.ssh_scp.service.ServiceExec;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerFrame;
 import com.etk2000.ssh_scp.util.HeadlessUtil;
 
+import net.schmizz.sshj.common.SSHRuntimeException;
 import net.schmizz.sshj.transport.TransportException;
 
 @SuppressWarnings("serial")
@@ -176,10 +178,10 @@ public class MainFrame extends JFrame {
 		JMenuItem loadConfig = new JMenuItem("Import Config");
 		loadConfig.addActionListener(e -> {
 			if (Config.loadWithRetry(null, this)) {
-				
+
 				// recreate UI if config changed
 				buildConnectionList(ssh);
-				
+
 				// FIXME: disable relaunch on removed connections
 			}
 		});
@@ -202,10 +204,10 @@ public class MainFrame extends JFrame {
 			setJMenuBar(menuBar);
 		}
 	}
-	
+
 	private void buildConnectionList(JRadioButton ssh) {
 		north.removeAll();
-		
+
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = c.gridy = 0;
 		{
@@ -266,7 +268,7 @@ public class MainFrame extends JFrame {
 				++c.gridy;
 			}
 		}
-		
+
 		if (north.getParent() != null) {
 			north.revalidate();
 			repaint();
@@ -289,6 +291,9 @@ public class MainFrame extends JFrame {
 			}
 			catch (IOException e) {
 				logException("Error in " + (ssh ? "SSH" : "SCP"), e);
+			}
+			catch (SSHRuntimeException e) {
+				logError("Configuration issue", '`' + srv.name + "` threw the following issue:\n" + e.getMessage());
 			}
 			finally {// restore clicking
 				setEnabled(this, true, true);

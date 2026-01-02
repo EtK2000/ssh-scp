@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import javax.swing.ImageIcon;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -20,6 +21,7 @@ import javax.swing.border.TitledBorder;
 import com.etk2000.ssh_scp.api.ServiceCloud;
 import com.etk2000.ssh_scp.cloudprovider.CloudServer.ServerState;
 import com.etk2000.ssh_scp.platform.Platform;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerFrame;
 import com.etk2000.ssh_scp.util.Util;
 
 @SuppressWarnings("serial")
@@ -36,7 +38,7 @@ public class CloudFrame extends JFrame {
 		setLocationRelativeTo(parent);
 
 		JPanel content = new JPanel(new GridLayout(0, 1));
-		cloud.fetchServers().stream().sorted().forEachOrdered(server -> {
+		cloud.fetchServers(true).stream().sorted().forEachOrdered(server -> {
 			Font titleFont = null;
 			Color titleColor = null;
 			switch (server.state) {
@@ -74,22 +76,31 @@ public class CloudFrame extends JFrame {
 			// allow connection attempts if we have the required info
 			// FIXME: need username and possibly fingerprint
 			if (server.state == ServerState.running && server.keyName != null && server.user != null) {
-				operations.add(UIUtil.createImageButton(UIManager.getIcon("FileView.hardDriveIcon"), () -> {
+				JComponent scp = UIUtil.createImageButton(UIManager.getIcon("FileView.hardDriveIcon"), () -> {
 					try {
-						new ExplorerFrame(this, server).setVisible(true);
+						if (server.address != null)
+							new ExplorerFrame(this, server).setVisible(true);
 					}
 					catch (IllegalStateException | IOException e) {
 						e.printStackTrace(); // FIXME: log in UI
 					}
-				}));
-				operations.add(UIUtil.createImageButton(new ImageIcon(Util.getResource("/terminal.png")), () -> {
+				}), ssh = UIUtil.createImageButton(new ImageIcon(Util.getResource("/terminal.png")), () -> {
 					try {
-						Platform.runSSH(server, true);
+						if (server.address != null)
+							Platform.runSSH(server, true);
 					}
 					catch (IllegalStateException | IOException e) {
 						e.printStackTrace(); // FIXME: log in UI
 					}
-				}));
+				});
+
+				operations.add(scp);
+				operations.add(ssh);
+
+				if (server.address == null) {
+					scp.setEnabled(false);
+					ssh.setEnabled(false);
+				}
 			}
 
 			inner.add(operations);

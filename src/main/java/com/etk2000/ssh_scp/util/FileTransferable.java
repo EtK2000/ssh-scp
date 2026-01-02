@@ -9,7 +9,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import com.etk2000.ssh_scp.platform.Platform;
-import com.etk2000.ssh_scp.ui.ExplorerObject;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerObject;
 
 public class FileTransferable implements Transferable {
 	private static File getTempFile(String filename) {

@@ -1,4 +1,4 @@
-package com.etk2000.ssh_scp.ui;
+package com.etk2000.ssh_scp.ui.explorer;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -23,13 +23,13 @@ import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListModel;
 import javax.swing.SwingUtilities;
+import javax.swing.text.JTextComponent;
 
 import com.etk2000.ssh_scp.platform.Platform;
-import com.etk2000.ssh_scp.ui.ExplorerObject.ObjectType;
+import com.etk2000.ssh_scp.ui.explorer.ExplorerObject.ObjectType;
 import com.etk2000.ssh_scp.util.ExplorerConnection;
 import com.etk2000.ssh_scp.util.FileTransferable;
 import com.etk2000.ssh_scp.util.HeadlessUtil;
@@ -68,15 +68,23 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 	private static final Color DARK_CYAN = Color.CYAN.darker(), DARK_GREEN = Color.GREEN.darker(), DARK_YELLOW = Color.YELLOW.darker();
 	private static final String[] OPTIONS_YES_NO_CANCEL_YESALL = { "Yes", "No", "Cancel", "Yes To All" };
 	private boolean isDragSource;
+	private JTextComponent cd;
 
-	ExplorerRemoteComponent(ExplorerConnection con, JTextField cd, LongBiConsumer onDownloadProgress, LongBiConsumer onUploadProgress) {
+	ExplorerRemoteComponent(ExplorerConnection con, LongBiConsumer onDownloadProgress, LongBiConsumer onUploadProgress) {
 		super(new DefaultListModel<>());
 		setCellRenderer(new ListCellRenderer<ExplorerObject>() {
 			private final JFileChooser dummy = new JFileChooser();
 
 			@Override
-			public Component getListCellRendererComponent(JList<? extends ExplorerObject> list, ExplorerObject value, int index, boolean isSelected, boolean cellHasFocus) {
-				DefaultListCellRenderer res = (DefaultListCellRenderer) new DefaultListCellRenderer().getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+			public Component getListCellRendererComponent(
+					JList<? extends ExplorerObject> list,
+					ExplorerObject value,
+					int index,
+					boolean isSelected,
+					boolean cellHasFocus
+			) {
+				DefaultListCellRenderer res = (DefaultListCellRenderer) new DefaultListCellRenderer().getListCellRendererComponent(list, value, index,
+						isSelected, cellHasFocus);
 				res.setText(value.name);
 
 				// load associated type icon if existent
@@ -110,7 +118,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 			public void keyTyped(KeyEvent e) {
 				switch (e.getKeyChar()) {
 					case KeyEvent.VK_BACK_SPACE:
-						onEnterItem(ExplorerObject.CD_UP, con, cd);
+						onEnterItem(ExplorerObject.CD_UP, con);
 						break;
 					case KeyEvent.VK_DELETE:
 						onDeleteItems(getSelectedValuesList(), con);
@@ -119,7 +127,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 						// FIXME: if multiple directories selected open new windows for them
 						// TODO: shift click/enter open in new window?
 						// if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0)
-						onEnterItem(getSelectedValue(), con, cd);
+						onEnterItem(getSelectedValue(), con);
 						break;
 				}
 			}
@@ -135,7 +143,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 					// Double-click detected
 					int index = locationToIndex(e.getPoint());
 					if (index != -1 && getCellBounds(index, index).contains(e.getPoint()))
-						onEnterItem(getModel().get(index), con, cd);
+						onEnterItem(getModel().get(index), con);
 				}
 			}
 		});
@@ -205,6 +213,10 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 		throw new IllegalAccessError("model cannot be modified");
 	}
 
+	void setCdDisplay(JTextComponent cd) {
+		this.cd = cd;
+	}
+
 	private void onDeleteItems(List<ExplorerObject> objs, ExplorerConnection con) {
 		boolean deleteAll = false;
 
@@ -220,7 +232,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 			else {
 
 				// LOW: if 1 remaining object only show "Yes" and "No"
-				
+
 				// if multiple, add "Cancel" and "Yes To All" options
 				if (objs.size() > 1) {
 					option = JOptionPane.showOptionDialog(this, text, "Confirm delete", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
@@ -253,7 +265,7 @@ class ExplorerRemoteComponent extends JList<ExplorerObject> {
 		}
 	}
 
-	private void onEnterItem(ExplorerObject obj, ExplorerConnection con, JTextField cd) {
+	private void onEnterItem(ExplorerObject obj, ExplorerConnection con) {
 		if (obj == null)
 			return;
 

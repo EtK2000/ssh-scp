@@ -209,7 +209,8 @@ public class ServiceAWS implements ServiceDynamicCloud {
 	}
 
 	@Override
-	public List<CloudServer> fetchServers() {
+	public List<CloudServer> fetchServers(boolean fetchIPs) {
+		// FIXME: implement
 		return getAllServers().stream().map(this::asCloudServer).collect(Collectors.toList());
 	}
 

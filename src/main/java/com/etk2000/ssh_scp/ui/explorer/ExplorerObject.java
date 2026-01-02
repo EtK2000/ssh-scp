@@ -1,4 +1,4 @@
-package com.etk2000.ssh_scp.ui;
+package com.etk2000.ssh_scp.ui.explorer;
 
 public class ExplorerObject {
 	public enum ObjectType {

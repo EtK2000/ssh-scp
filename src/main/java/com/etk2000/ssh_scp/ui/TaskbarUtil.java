@@ -5,10 +5,10 @@ import java.awt.Taskbar.Feature;
 import java.awt.Taskbar.State;
 import java.awt.Window;
 
-class TaskbarUtil {
+public class TaskbarUtil {
 	private static final Taskbar TASKBAR = Taskbar.isTaskbarSupported() ? Taskbar.getTaskbar() : null;
 
-	static void calculateTaskbarProgress(Window w, long current, long total) {
+	public static void calculateTaskbarProgress(Window w, long current, long total) {
 		if (current == total)
 			setTaskbarProgressState(w, total == -1 ? State.OFF : State.INDETERMINATE);
 
@@ -19,7 +19,7 @@ class TaskbarUtil {
 		}
 	}
 
-	static void setTaskbarProgress(Window w, int progress) {
+	public static void setTaskbarProgress(Window w, int progress) {
 		if (TASKBAR == null)
 			return;
 
@@ -31,7 +31,7 @@ class TaskbarUtil {
 			TASKBAR.setProgressValue(progress);
 	}
 
-	static void setTaskbarProgressState(Window w, State state) {
+	public static void setTaskbarProgressState(Window w, State state) {
 		if (TASKBAR == null)
 			return;
 

@@ -122,7 +122,8 @@ public class ServiceGoogleCloud implements ServiceDynamicCloud {
 	}
 
 	@Override
-	public List<CloudServer> fetchServers() {
+	public List<CloudServer> fetchServers(boolean fetchIPs) {
+		// FIXME: implement
 		return getAllServers().stream().map(ServiceGoogleCloud::asCloudServer).collect(Collectors.toList());
 	}
 
